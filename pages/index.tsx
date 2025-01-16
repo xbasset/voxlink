@@ -17,7 +17,7 @@ const Home: React.FC = () => {
   const [selectedMic, setSelectedMic] = useState(""); // Selected microphone
   const [callDuration, setCallDuration] = useState(0); // Tracks call duration in seconds
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
-  const [ringtoneSound, setRingtoneSound] = useState<Howl>(new Howl({ src: ["/audio/ringtone.mp3"] }));
+  const [ringtoneSound, setRingtoneSound] = useState<Howl | null>(null);
   const [ringtoneTimeoutId, setRingtoneTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const [isSessionActive, setIsSessionActive] = useState(false);
@@ -28,6 +28,9 @@ const Home: React.FC = () => {
   const audioElement = useRef<HTMLAudioElement | null>(null);
 
   const handleCallButtonClick = () => {
+    if (!ringtoneSound) {
+      setRingtoneSound(new Howl({ src: ["/audio/ringtone.mp3"] }));
+    }
     setModalVisible(true);
     setStep(1);
     getUserData().then((userData) => {
@@ -95,14 +98,16 @@ const Home: React.FC = () => {
   };
 
   const initiateCall = (token: TokenResponse) => {
-    ringtoneSound.play();
-    // Stop the ringtone after MAX_RINGTONE_DURATION
-    const timeoutId = setTimeout(() => {
-      ringtoneSound.stop();
-      handleStartCall(token);
-    }, MAX_RINGTONE_DURATION);
+    if (ringtoneSound) {
+      ringtoneSound.play();
+      // Stop the ringtone after MAX_RINGTONE_DURATION
+      const timeoutId = setTimeout(() => {
+        ringtoneSound.stop();
+        handleStartCall(token);
+      }, MAX_RINGTONE_DURATION);
 
-    setRingtoneTimeoutId(timeoutId);
+      setRingtoneTimeoutId(timeoutId);
+    }
   };
 
 
@@ -278,7 +283,9 @@ const Home: React.FC = () => {
       micStream.getTracks().forEach((track) => track.stop());
       setMicStream(null);
     }
-    ringtoneSound.stop();
+    if (ringtoneSound) {
+      ringtoneSound.stop();
+    }
     if (ringtoneTimeoutId) {
       clearTimeout(ringtoneTimeoutId);
       setRingtoneTimeoutId(null);
