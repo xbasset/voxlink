@@ -12,7 +12,8 @@ Voxlink is an AI-powered voice assistant that allows users to initiate a call to
 Voxlink is deployed as a web plugin in JavaScript that enables a click-to-call action on any webpage. The plugin will create an iframe that dynamically generates a user experience for initiating a call.
 It's also available on a dedicated regular phone number.
 
-### How to use
+
+### IntegrationExample with a personal website:
 
 1. Click the "Call Me Now" button on any webpage.
 ![alt text](docs/img/image.png)

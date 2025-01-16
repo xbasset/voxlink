@@ -6,6 +6,8 @@ export interface UserData {
   city: string;
   state: string;
   zip: string;
+  bio: string;
   instructions: string;
-  image_url: string;
+  avatar: string;
+  backgroundImage: string;
 } 

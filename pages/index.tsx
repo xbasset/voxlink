@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Howl } from "howler"; // Import Howler for audio playback
+import ProfileHeader from "../components/ProfileHeader";
+import { PhoneIcon, ChevronRightIcon, XMarkIcon } from '@heroicons/react/20/solid'
 import CallButton from "../components/CallButton";
 import Modal from "../components/Modal";
 import { UserData } from '../types/user';
@@ -33,15 +35,6 @@ const Home: React.FC = () => {
     }
     setModalVisible(true);
     setStep(1);
-    getUserData().then((userData) => {
-      if (userData) {
-        setUserData(userData);
-        setInstructions(userData.instructions);
-      } else {
-        console.error("Failed to get user data");
-        setInstructions("You are an Executive Assistant Software that takes care of the people calling. Unfortunately, we don't have any information about the user, there seems to be an issue with the user data. Politely ask the user to try again later, and tell them that you are sorry for the inconvenience.");
-      }
-    });
   };
 
   const getUserData = async () => {
@@ -102,7 +95,8 @@ const Home: React.FC = () => {
       ringtoneSound.play();
       // Stop the ringtone after MAX_RINGTONE_DURATION
       const timeoutId = setTimeout(() => {
-        ringtoneSound.stop();
+        // ringtoneSound.stop();
+        ringtoneSound.fade(1, 0.1, 1000);
         handleStartCall(token);
       }, MAX_RINGTONE_DURATION);
 
@@ -367,9 +361,53 @@ const Home: React.FC = () => {
     return `${minutes}:${secondsString}`;
   };
 
+  // Add this useEffect to fetch user data on page load
+  useEffect(() => {
+    console.log("mounted");
+    getUserData().then((userData) => {
+      if (userData) {
+        setUserData(userData);
+        setInstructions(userData.instructions);
+      } else {
+        console.error("Failed to get user data");
+        setInstructions("You are an Executive Assistant Software that takes care of the people calling. Unfortunately, we don't have any information about the user, there seems to be an issue with the user data. Politely ask the user to try again later, and tell them that you are sorry for the inconvenience.");
+      }
+    });
+  }, []); // Empty dependency array means this runs once on mount
+
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100 text-gray-800">
-      <CallButton onClick={handleCallButtonClick} />
+      <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100 text-gray-800">
+        <ProfileHeader user={userData} />
+        <div className="bg-white px-6 py-4 lg:px-8">
+        <div className="mx-auto max-w-3xl text-base/7 text-gray-700">
+          <p className="text-base/7 font-semibold text-indigo-600">Personal Website</p>
+          <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 items-center justify-between">
+
+          <h1 className="mt-2 text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
+            {userData?.name}
+          </h1>
+          <CallButton onClick={handleCallButtonClick} user={userData} />
+          </div>
+          <p className="mt-6 text-xl/8">
+            {userData?.bio}
+          </p>
+          <div className="mt-10 max-w-2xl">
+            <p>
+              Faucibus commodo massa rhoncus, volutpat. Dignissim sed eget risus enim. Mattis mauris semper sed amet vitae
+              sed turpis id. Id dolor praesent donec est. Odio penatibus risus viverra tellus varius sit neque erat velit.
+              Faucibus commodo massa rhoncus, volutpat. Dignissim sed eget risus enim. Mattis mauris semper sed amet vitae
+              sed turpis id.
+            </p>
+
+            <p className="mt-8">
+              Et vitae blandit facilisi magna lacus commodo. Vitae sapien duis odio id et. Id blandit molestie auctor
+              fermentum dignissim. Lacus diam tincidunt ac cursus in vel. Mauris varius vulputate et ultrices hac
+              adipiscing egestas. Iaculis convallis ac tempor et ut. Ac lorem vel integer orci.
+            </p>
+          </div>
+        </div>
+      </div>
+      
 
       <Modal isVisible={isModalVisible} onClose={() => setModalVisible(false)}>
         <div ref={modalRef}>
@@ -388,12 +426,13 @@ const Home: React.FC = () => {
               <button
                 id="voxlink-go-to-microphone-button"
                 onClick={handleNext}
-                className={`text-white font-bold py-2 px-4 rounded float-right ${
-                  name.trim() ? "bg-blue-500 hover:bg-blue-700" : "bg-gray-400"
+                className={`flex items-center space-x-2 text-white font-bold py-2 px-4 rounded float-right ${
+                  name.trim() ? "bg-indigo-500 hover:bg-indigo-700" : "bg-gray-400"
                 }`}
                 disabled={!name.trim()}
               >
                 Next
+                <ChevronRightIcon aria-hidden="true" className="-ml-0.5 mr-1.5 size-5 text-white" />
               </button>
             </div>
           )}
@@ -424,14 +463,15 @@ const Home: React.FC = () => {
                   <button
                     id="voxlink-start-call-button"
                     onClick={handleNext}
-                    className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded float-right"
+                    className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-4 mx-auto block hover:scale-105 transition-all duration-300 shadow-xl hover:animate-pulse"
                   >
+                    <PhoneIcon aria-hidden="true" className="-ml-0.5 mr-1.5 size-5 text-white" />
                     Start the Call
                   </button>
                 </div>
               ) : (
                 <div>
-                  <label className="block mb-2 font-semibold">
+                  <label className="block mb-2 font-semibold text-xl text-center">
                     👋 Hey, {name}
                   </label>
                   <p className="mb-4">
@@ -448,18 +488,19 @@ const Home: React.FC = () => {
           {step === 3 && (
             <div>
               <div className="relative">
-                <img src={userData?.image_url} alt={userData?.name} className="w-96 h-max rounded-lg mb-4" />
+                <img src={userData?.avatar} alt={userData?.name} className="w-96 h-max rounded-lg mb-4" />
                 <div className="absolute bottom-6 left-0 right-0 text-center">
-                  <span className="text-gray-800 text-xl font-bold bg-gray-100 rounded-lg p-2">{userData?.name}</span>
+                  <span className="text-gray-800 text-xl font-bold bg-gray-100 bg-opacity-60 rounded-lg p-2">{userData?.name}</span>
                 </div>
               </div>
-              <h2 className="text-lg font-bold mb-4">Calling...</h2>
-              <p>📞 Hold on, the call is being prepared.</p>
+              <h2 className="text-lg font-bold mb-4 text-center">Calling...</h2>
+              <p className="text-center text-md">Hold on, the call is being prepared.</p>
               <button
                 id="voxlink-stop-preparing-button"
                 onClick={handleStopCall}
-                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mt-4 float-right"
+                className="flex items-center space-x-2 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mt-4 mx-auto block hover:scale-105 transition-all duration-300"
               >
+                <XMarkIcon aria-hidden="true" className="-ml-0.5 mr-1.5 size-5 text-white" />
                 Stop Call
               </button>
             </div>
@@ -470,16 +511,16 @@ const Home: React.FC = () => {
               <div className="relative">
                 <img src="/images/voxlink-bot.png" alt="User" className="w-96 h-max rounded-lg mb-4" />
                 <div className="absolute bottom-6 left-0 right-0 text-center">
-                  <span className="text-gray-800 text-xl font-bold bg-gray-100 rounded-lg p-2">{userData?.name}'s Executive Assistant Software</span>
+                  <span className="text-gray-800 text-xl font-bold bg-gray-100 bg-opacity-60 rounded-lg p-2">{userData?.name}'s Executive Assistant Software</span>
                 </div>
               </div>
-              <h2 className="text-lg font-bold mb-4">Call in Progress</h2>
-              <p>Call Duration: {formatCallDuration(callDuration)}</p>
+              <p className="text-center text-md">Call Duration: {formatCallDuration(callDuration)}</p>
               <button
                 id="voxlink-stop-call-button"
                 onClick={handleStopCall}
-                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mt-4 float-center"
+                className="flex items-center space-x-2 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mt-4 mx-auto block hover:scale-105 transition-all duration-300"
               >
+                <XMarkIcon aria-hidden="true" className="-ml-0.5 mr-1.5 size-5 text-white" />
                 Stop Call
               </button>
             </div>
