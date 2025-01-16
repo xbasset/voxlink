@@ -10,7 +10,7 @@ const Modal: React.FC<ModalProps> = ({ isVisible, onClose, children }) => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
+    <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center w-full h-full">
       <div className="bg-white rounded-lg p-6 w-96 shadow-lg">
         {children}
         <button

@@ -447,6 +447,12 @@ const Home: React.FC = () => {
 
           {step === 3 && (
             <div>
+              <div className="relative">
+                <img src={userData?.image_url} alt={userData?.name} className="w-96 h-max rounded-lg mb-4" />
+                <div className="absolute bottom-6 left-0 right-0 text-center">
+                  <span className="text-gray-800 text-xl font-bold bg-gray-100 rounded-lg p-2">{userData?.name}</span>
+                </div>
+              </div>
               <h2 className="text-lg font-bold mb-4">Calling...</h2>
               <p>📞 Hold on, the call is being prepared.</p>
               <button
@@ -461,12 +467,18 @@ const Home: React.FC = () => {
 
           {step === 4 && (
             <div>
+              <div className="relative">
+                <img src="/images/voxlink-bot.png" alt="User" className="w-96 h-max rounded-lg mb-4" />
+                <div className="absolute bottom-6 left-0 right-0 text-center">
+                  <span className="text-gray-800 text-xl font-bold bg-gray-100 rounded-lg p-2">{userData?.name}'s Executive Assistant Software</span>
+                </div>
+              </div>
               <h2 className="text-lg font-bold mb-4">Call in Progress</h2>
               <p>Call Duration: {formatCallDuration(callDuration)}</p>
               <button
                 id="voxlink-stop-call-button"
                 onClick={handleStopCall}
-                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mt-4 float-right"
+                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mt-4 float-center"
               >
                 Stop Call
               </button>

@@ -7,4 +7,5 @@ export interface UserData {
   state: string;
   zip: string;
   instructions: string;
+  image_url: string;
 } 
