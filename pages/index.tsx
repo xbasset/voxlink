@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Howl } from "howler"; // Import Howler for audio playback
 import CallButton from "../components/CallButton";
 import Modal from "../components/Modal";
+import { UserData } from '../types/user';
 
 const MAX_RINGTONE_DURATION = 5000;
 
@@ -25,17 +26,6 @@ interface TokenResponse {
   tool_choice: string;
   temperature: number;
   max_response_output_tokens: string;
-}
-
-interface UserData {
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  state: string;
-  zip: string;
-  instructions: string;
 }
 
 const Home: React.FC = () => {
