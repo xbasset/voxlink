@@ -42,3 +42,10 @@ It's also available on a dedicated regular phone number.
 ## Architecture
 
 See more details in the [architecture](./docs/architecture.md) document.
+
+## How to run the project
+
+1. Clone the repository
+2. Run `npm install`
+3. Run `npm run dev`
+4. Navigate to `http://localhost:3000`
