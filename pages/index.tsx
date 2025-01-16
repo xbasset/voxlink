@@ -51,7 +51,7 @@ const Home: React.FC = () => {
   // Auto-focus the name input when modal becomes visible
   useEffect(() => {
     if (isModalVisible && step === 1) {
-      const nameInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+      const nameInput = document.getElementById('caller-name') as HTMLInputElement;
       if (nameInput) {
         nameInput.focus();
       }
@@ -67,6 +67,7 @@ const Home: React.FC = () => {
           <div>
           <h2 className="text-lg font-bold mb-4">Let's prepare the call</h2>
             <input
+              id="voxlink-caller-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -75,6 +76,7 @@ const Home: React.FC = () => {
               placeholder="Enter your name"
             />
             <button
+              id="voxlink-go-to-microphone-button"
               onClick={handleNext}
               className={`text-white font-bold py-2 px-4 rounded float-right ${
                 name.trim() ? 'bg-blue-500 hover:bg-blue-700' : 'bg-gray-400'
@@ -93,6 +95,7 @@ const Home: React.FC = () => {
               <div>
                 <label className="block mb-2 font-semibold">Choose a Microphone:</label>
                 <select
+                  id="voxlink-microphone-select"
                   value={selectedMic}
                   onChange={handleMicChange}
                   className="w-full p-2 border border-gray-300 rounded mb-4"
@@ -104,6 +107,7 @@ const Home: React.FC = () => {
                   ))}
                 </select>
                 <button
+                  id="voxlink-start-call-button"
                   onClick={handleStartCall}
                   className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded float-right"
                 >
