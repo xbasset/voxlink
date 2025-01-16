@@ -14,42 +14,38 @@ It's also available on a dedicated regular phone number.
 
 ## Workflow and Process:
 
-1. Button Configuration:
+### 1. Button Configuration:
 - A configurable button with text such as "Call Me Now".
 - When clicked, it opens a modal view.
 
-2. Modal View Steps:
+### 2. Modal View Steps:
 
-### Step 1: User Name Input
-- Display a single line asking the user for their name.
-- Provide a text box for the user to enter their name.
-- Include a "Next" button to proceed to the next step.
+#### Step 1: Initial Setup
+- User enters their name
+- Shows "Let's prepare the call" screen
+- Input field for name entry
 
-### Step 2: Microphone Access Authorization
-- Inform the user that microphone access is required to make the call.
-- Display a message: "Hey, I need access to the microphone for you to talk to me."
-- Include a "Grant Access" button.
-- Trigger a JavaScript action to request microphone permission.
-- Handle the browser pop-up for microphone access.
-- If access is granted, show a validation with a green checkbox.
-- Provide a drop-down list to select the microphone for the call.
-- Include a "Start the Call" button to proceed.
+#### Step 2: Microphone Access
+- Request microphone permissions
+- Shows microphone selection dropdown if available
+- Displays waiting message while getting permissions
 
-### Step 3: Initialization and Connection
-- Display a loading spinning icon.
-- Play a music simulating a phone call notification.
-- After 3 seconds, proceed to the next step.
+#### Step 3: Call Preparation
+- Shows "Calling..." screen
+- Plays ringtone
+- Displays "Hold on, the call is being prepared"
+- Maximum ringtone duration is 10 seconds (MAX_RINGTONE_DURATION = 10000)
 
-### Step 4: Video Recording Playback
-- Display a video recording of the user with a personalized message.
-- Inform the user that they will be connected to an Executive Assistant Software for further assistance.
+#### Step 4: Active Call
+- Shows "Call in Progress" screen
+- Displays call duration timer
+- Allows user to stop the call
 
-### Step 5: AI Assistant Connection
-- Automatically switch to the AI Assistant Software.
-- Allow the user to talk directly to the voice assistant.
-- Provide an "End Call" button to stop the conversation.
 
-### Step 6: Feedback Collection
+The steps progress sequentially (1 → 2 → 3 → 4) and can be stopped at any point using the stop/close buttons, though steps 3 and 4 require explicit stopping via the "Stop Call" button (clicking outside won't close the modal during these steps).
+
+
+#### Step 5: Feedback Collection
 - Ask for user feedback with a rating system from 1 to 5.
 
 ## Backend
