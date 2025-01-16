@@ -46,6 +46,7 @@ See more details in the [architecture](./docs/architecture.md) document.
 ## How to run the project
 
 1. Clone the repository
-2. Run `npm install`
-3. Run `npm run dev`
-4. Navigate to `http://localhost:3000`
+2. Create a .env.local file with the following variables: `OPENAI_API_KEY`. See [.env.example](.env.example).
+3. Run `npm install`
+4. Run `npm run dev`
+5. Navigate to `http://localhost:3000`
