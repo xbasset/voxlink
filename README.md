@@ -1,89 +1,40 @@
-# Voxlink: Click-to-Call Web Plugin
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
 
-Voxlink reinvents the voicemail in the age of AI. It's your Executive Assistant Software that takes care of the people calling you.
+## Getting Started
 
-## What's Voxlink?
+First, run the development server:
 
-### Core Concept
-Voxlink is an AI-powered voice assistant that allows users to initiate a call to a user and get assistance to leave a rich message to the user for a better experience.
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-### How it works
-Voxlink is deployed as a web plugin in JavaScript that enables a click-to-call action on any webpage. The plugin will create an iframe that dynamically generates a user experience for initiating a call.
-It's also available on a dedicated regular phone number.
+You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
 
-## Workflow and Process:
+[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
 
-1. Button Configuration:
-- A configurable button with text such as "Call Me Now".
-- When clicked, it opens a modal view.
+The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
 
-2. Modal View Steps:
+This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-### Step 1: User Name Input
-- Display a single line asking the user for their name.
-- Provide a text box for the user to enter their name.
-- Include a "Next" button to proceed to the next step.
+## Learn More
 
-### Step 2: Microphone Access Authorization
-- Inform the user that microphone access is required to make the call.
-- Display a message: "Hey, I need access to the microphone for you to talk to me."
-- Include a "Grant Access" button.
-- Trigger a JavaScript action to request microphone permission.
-- Handle the browser pop-up for microphone access.
-- If access is granted, show a validation with a green checkbox.
-- Provide a drop-down list to select the microphone for the call.
-- Include a "Start the Call" button to proceed.
+To learn more about Next.js, take a look at the following resources:
 
-### Step 3: Initialization and Connection
-- Display a loading spinning icon.
-- Play a music simulating a phone call notification.
-- After 3 seconds, proceed to the next step.
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
 
-### Step 4: Video Recording Playback
-- Display a video recording of the user with a personalized message.
-- Inform the user that they will be connected to an Executive Assistant Software for further assistance.
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-### Step 5: AI Assistant Connection
-- Automatically switch to the AI Assistant Software.
-- Allow the user to talk directly to the voice assistant.
-- Provide an "End Call" button to stop the conversation.
+## Deploy on Vercel
 
-### Step 6: Feedback Collection
-- Ask for user feedback with a rating system from 1 to 5.
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-## Backend
-The backend of Voxlink is built with:
-
-- NextJS: A React framework for production that enables features like:
-  - Server-side rendering
-  - API routes
-  - File-based routing
-  - Built-in optimization
-
-- OpenAI Integration:
-  - Realtime API conversation processing via WebRTC
-
-The backend handles:
-- User session management
-- Audio streaming and processing
-- AI model interactions
-- Call state management
-- Analytics and logging
-
-## Frontend
-The frontend of Voxlink is built with:
-- React: A JavaScript library for building user interfaces
-  - Component-based architecture 
-  - Virtual DOM and hooks
-  - Context API
-
-- TailwindCSS: A utility-first CSS framework
-  - Responsive design utilities
-  - Custom design system
-  - Dark mode support
-
-The frontend handles:
-- UI rendering and state management
-- Real-time audio streaming
-- Responsive layouts
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
