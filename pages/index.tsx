@@ -27,40 +27,20 @@ interface TokenResponse {
   max_response_output_tokens: string;
 }
 
-const sessionUpdate = {
-  type: "session.update",
-  session: {
-    tools: [
-      {
-        type: "function",
-        name: "display_color_palette",
-        description: "functionDescription",
-        parameters: {
-          type: "object",
-          strict: true,
-          properties: {
-            theme: {
-              type: "string",
-              description: "Description of the theme for the color scheme.",
-            },
-            colors: {
-              type: "array",
-              description: "Array of five hex color codes based on the theme.",
-              items: {
-                type: "string",
-                description: "Hex color code",
-              },
-            },
-          },
-          required: ["theme", "colors"],
-        },
-      },
-    ],
-    tool_choice: "auto",
-  },
-};
+interface UserData {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  instructions: string;
+}
 
 const Home: React.FC = () => {
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [instructions, setInstructions] = useState<string>("");
   const [isModalVisible, setModalVisible] = useState(false);
   const [step, setStep] = useState(1); // Tracks which step we are on
   const [name, setName] = useState("");
@@ -73,17 +53,48 @@ const Home: React.FC = () => {
   const modalRef = useRef<HTMLDivElement>(null);
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [events, setEvents] = useState<any[]>([]);
+  const [agentInitialized, setAgentInitialized] = useState(false);
   const [dataChannel, setDataChannel] = useState<RTCDataChannel | null>(null);
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const audioElement = useRef<HTMLAudioElement | null>(null);
 
   const handleCallButtonClick = () => {
     setModalVisible(true);
-    setStep(1); // Reset to the first step
+    setStep(1);
+    getUserData().then((userData) => {
+      if (userData) {
+        setUserData(userData);
+        setInstructions(userData.instructions);
+      } else {
+        console.error("Failed to get user data");
+        setInstructions("You are an Executive Assistant Software that takes care of the people calling. Unfortunately, we don't have any information about the user, there seems to be an issue with the user data. Politely ask the user to try again later, and tell them that you are sorry for the inconvenience.");
+      }
+    });
+  };
+
+  const getUserData = async () => {
+    try {
+      const response = await fetch("/api/user");
+      if (!response.ok) {
+        throw new Error(`Failed to get user data: ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log("getUserData > response data json: ", data.name);
+      if (!data) {
+        throw new Error("User data not found in response");
+      }
+      return data as UserData; // Return the user data
+    } catch (error) {
+      console.error("Error getting user data:", error);
+      return null;
+    }
   };
 
   const handleNext = async () => {
     if (step === 1) {
+      const updatedInstructions = instructions + "\n\nThe caller's name is " + name + ".";
+      setInstructions(updatedInstructions);
+      console.log("handleNext > updatedInstructions: ", instructions);
       setStep(2);
       await requestMicrophoneAccess();
     } else if (step === 2) {
@@ -104,7 +115,6 @@ const Home: React.FC = () => {
         throw new Error(`Failed to get token: ${response.statusText}`);
       }
       const data = await response.json();
-      console.log("getToken > response data json: token=" + data.client_secret.value);
       if (!data) {
         throw new Error("Token not found in response");
       }
@@ -253,6 +263,23 @@ const Home: React.FC = () => {
     }
   }, [dataChannel]);
 
+
+  useEffect(() => {
+    if (!events || events.length === 0) return;
+    const firstEvent = events[events.length - 1];
+    if (!agentInitialized && firstEvent.type === "session.created") {
+
+      const initSessionInstructionsEvent = {
+        "type": "session.update",
+        "session": {
+          "instructions": instructions,
+        }
+      }
+      sendClientEvent(initSessionInstructionsEvent);
+      sendClientEvent({ type: "response.create" });
+      setAgentInitialized(true);
+    }
+  }, [events]);
 
   const requestMicrophoneAccess = async () => {
     try {
