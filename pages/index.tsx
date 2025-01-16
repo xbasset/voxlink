@@ -13,6 +13,8 @@ const Home: React.FC = () => {
   const [selectedMic, setSelectedMic] = useState(""); // Selected microphone
   const [callDuration, setCallDuration] = useState(0); // Tracks call duration in seconds
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
+  const [ringtoneSound, setRingtoneSound] = useState<Howl>(new Howl({ src: ["/audio/ringtone.mp3"] }));
+  const [ringtoneTimeoutId, setRingtoneTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
   const handleCallButtonClick = () => {
@@ -49,18 +51,16 @@ const Home: React.FC = () => {
   };
 
   const playRingtone = () => {
-    const sound = new Howl({
-      src: ["/audio/ringtone.mp3"], // Path to your ringtone file
-      loop: true, // Loop the ringtone until manually stopped
-    });
 
-    sound.play();
+    ringtoneSound.play();
 
     // Stop the ringtone after 1 second (adjust as needed)
-    setTimeout(() => {
-      sound.stop();
+    const timeoutId = setTimeout(() => {
+      ringtoneSound.stop();
       handleStartCall();
     }, MAX_RINGTONE_DURATION);
+
+    setRingtoneTimeoutId(timeoutId);
   };
 
   const handleMicChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -78,9 +78,14 @@ const Home: React.FC = () => {
       micStream.getTracks().forEach((track) => track.stop());
       setMicStream(null); // Reset to null if you like
     }
-    setModalVisible(false);
+    ringtoneSound.stop();
+    if (ringtoneTimeoutId) {
+      clearTimeout(ringtoneTimeoutId);
+      setRingtoneTimeoutId(null);
+    }
     setStep(1);
     setCallDuration(0);
+    setModalVisible(false);
   };
 
   // Keep the timer going while in step 4
@@ -136,13 +141,17 @@ const Home: React.FC = () => {
 
   // Add click outside listener
   useEffect(() => {
+    // if the state is in step 3 or 4, do nothing the modal is must be stopped by clicking the stop button
+    if (step === 3 || step === 4) {
+      return;
+    }
     if (isModalVisible) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isModalVisible]);
+  }, [isModalVisible, step]);
 
   // Helper to format the call duration
   const formatCallDuration = (totalSeconds: number) => {
@@ -229,6 +238,13 @@ const Home: React.FC = () => {
             <div>
               <h2 className="text-lg font-bold mb-4">Calling...</h2>
               <p>📞 Hold on, the call is being prepared.</p>
+              <button
+                id="voxlink-stop-preparing-button"
+                onClick={handleStopCall}
+                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mt-4 float-right"
+              >
+                Stop Call
+              </button>
             </div>
           )}
 
@@ -237,6 +253,7 @@ const Home: React.FC = () => {
               <h2 className="text-lg font-bold mb-4">Call in Progress</h2>
               <p>Call Duration: {formatCallDuration(callDuration)}</p>
               <button
+                id="voxlink-stop-call-button"
                 onClick={handleStopCall}
                 className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mt-4 float-right"
               >
