@@ -3,7 +3,29 @@ import { Howl } from "howler"; // Import Howler for audio playback
 import CallButton from "../components/CallButton";
 import Modal from "../components/Modal";
 
-const MAX_RINGTONE_DURATION = 10000;
+const MAX_RINGTONE_DURATION = 5000;
+
+interface TokenResponse {
+  client_secret: {
+    value: string;
+    expires_at: number;
+    tools: any[];
+  };
+  id: string;
+  object: string;
+  model: string;
+  expires_at: number;
+  modalities: string[];
+  instructions: string;
+  voice: string;
+  turn_detection: any;
+  input_audio_format: string;
+  output_audio_format: string;
+  input_audio_transcription: string | null;
+  tool_choice: string;
+  temperature: number;
+  max_response_output_tokens: string;
+}
 
 const Home: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -15,7 +37,15 @@ const Home: React.FC = () => {
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
   const [ringtoneSound, setRingtoneSound] = useState<Howl>(new Howl({ src: ["/audio/ringtone.mp3"] }));
   const [ringtoneTimeoutId, setRingtoneTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const [token, setToken] = useState<TokenResponse | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+
+
+  const [isSessionActive, setIsSessionActive] = useState(false);
+  const [events, setEvents] = useState<any[]>([]);
+  const [dataChannel, setDataChannel] = useState<RTCDataChannel | null>(null);
+  const peerConnection = useRef<RTCPeerConnection | null>(null);
+  const audioElement = useRef<HTMLAudioElement | null>(null);
 
   const handleCallButtonClick = () => {
     setModalVisible(true);
@@ -24,15 +54,155 @@ const Home: React.FC = () => {
 
   const handleNext = async () => {
     if (step === 1) {
-      // Proceed to Step 2: Microphone Access
       setStep(2);
       await requestMicrophoneAccess();
     } else if (step === 2) {
-      // Proceed to Step 3: Simulate ringtone
-      playRingtone();
-      setStep(3);
+      const tokenResponse = await getToken();
+      if (tokenResponse) {
+        // 1) Set the token in state (React will schedule re-render)
+        setToken(tokenResponse);
+        // 2) Move forward to step 3
+        setStep(3);
+        // 3) Play the ringtone, which will eventually call handleStartCall
+        playRingtone();
+      } else {
+        console.error('Failed to get token');
+      }
     }
   };
+
+  const getToken = async () => {
+    try {
+      const response = await fetch('/api/token');
+      if (!response.ok) {
+        throw new Error(`Failed to get token: ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log("getToken > response data json: token=" + data.client_secret.value);
+      if (!data) {
+        throw new Error('Token not found in response');
+      }
+      return data as TokenResponse; // Return the token instead of setting state
+    } catch (error) {
+      console.error('Error getting token:', error);
+      return null;
+    }
+  }
+
+  async function startSession() {
+    // Get an ephemeral key from the Fastify server
+    console.log("Starting session with token:" + token);
+    if (!token) {
+      console.error("Token is not available");
+      return;
+    }
+    const EPHEMERAL_KEY = token.client_secret;
+
+    // Create a peer connection
+    const pc = new RTCPeerConnection();
+
+    // Set up to play remote audio from the model
+    audioElement.current = document.createElement("audio");
+    if (audioElement.current) {
+      audioElement.current.autoplay = true;
+      pc.ontrack = (e) => (audioElement.current!.srcObject = e.streams[0]);
+    }
+
+    if (micStream) {
+      pc.addTrack(micStream.getTracks()[0]);
+    }
+
+    // Set up data channel for sending and receiving events
+    const dc = pc.createDataChannel("oai-events");
+    setDataChannel(dc);
+
+    // Start the session using the Session Description Protocol (SDP)
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    const baseUrl = "https://api.openai.com/v1/realtime";
+    const model = "gpt-4o-realtime-preview-2024-12-17";
+    const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
+      method: "POST",
+      body: offer.sdp,
+      headers: {
+        Authorization: `Bearer ${EPHEMERAL_KEY}`,
+        "Content-Type": "application/sdp",
+      },
+    });
+
+    const answer: RTCSessionDescriptionInit = {
+      type: 'answer' as RTCSdpType,
+      sdp: await sdpResponse.text(),
+    };
+    await pc.setRemoteDescription(answer);
+
+    peerConnection.current = pc;
+  }
+
+  // Stop current session, clean up peer connection and data channel
+  function stopSession() {
+    if (dataChannel) {
+      dataChannel.close();
+    }
+    if (peerConnection.current) {
+      peerConnection.current.close();
+    }
+
+    setIsSessionActive(false);
+    setDataChannel(null);
+    peerConnection.current = null;
+  }
+
+  // Send a message to the model
+  function sendClientEvent(message: any) {
+    if (dataChannel) {
+      message.event_id = message.event_id || crypto.randomUUID();
+      dataChannel.send(JSON.stringify(message));
+      setEvents((prev) => [message, ...prev]);
+    } else {
+      console.error(
+        "Failed to send message - no data channel available",
+        message,
+      );
+    }
+  }
+
+  // Send a text message to the model
+  function sendTextMessage(message: string) {
+    const event = {
+      type: "conversation.item.create",
+      item: {
+        type: "message",
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text: message,
+          },
+        ],
+      },
+    };
+
+    sendClientEvent(event);
+    sendClientEvent({ type: "response.create" });
+  }
+
+  // Attach event listeners to the data channel when a new one is created
+  useEffect(() => {
+    if (dataChannel) {
+      // Append new server events to the list
+      dataChannel.addEventListener("message", (e) => {
+        setEvents((prev) => [JSON.parse(e.data), ...prev]);
+      });
+
+      // Set session active when the data channel is opened
+      dataChannel.addEventListener("open", () => {
+        setIsSessionActive(true);
+        setEvents([]);
+      });
+    }
+  }, [dataChannel]);
 
   const requestMicrophoneAccess = async () => {
     try {
@@ -51,12 +221,12 @@ const Home: React.FC = () => {
   };
 
   const playRingtone = () => {
-
     ringtoneSound.play();
 
-    // Stop the ringtone after 1 second (adjust as needed)
-    const timeoutId = setTimeout(() => {
+    // Stop the ringtone after MAX_RINGTONE_DURATION seconds
+    const timeoutId = setTimeout(async () => {
       ringtoneSound.stop();
+      // Use the token from state directly in handleStartCall
       handleStartCall();
     }, MAX_RINGTONE_DURATION);
 
@@ -67,13 +237,24 @@ const Home: React.FC = () => {
     setSelectedMic(event.target.value);
   };
 
-  const handleStartCall = () => {
-    // Move to the "call in progress" step
+  const handleStartCall = async () => {
+    // Check token here instead of in playRingtone
+    console.log("handleStartCall> token=" + token?.client_secret.value);
+    
+    if (!token) {
+      console.error('No token available for call');
+      handleStopCall();
+      return;
+    }
+    
     setStep(4);
+    console.log("handleStartCall> Starting session with token:", token);
+    await startSession();
   };
 
   // Stop call explicitly, including stopping media tracks
   const handleStopCall = () => {
+    stopSession();
     if (micStream) {
       micStream.getTracks().forEach((track) => track.stop());
       setMicStream(null); // Reset to null if you like
@@ -182,9 +363,8 @@ const Home: React.FC = () => {
               <button
                 id="voxlink-go-to-microphone-button"
                 onClick={handleNext}
-                className={`text-white font-bold py-2 px-4 rounded float-right ${
-                  name.trim() ? "bg-blue-500 hover:bg-blue-700" : "bg-gray-400"
-                }`}
+                className={`text-white font-bold py-2 px-4 rounded float-right ${name.trim() ? "bg-blue-500 hover:bg-blue-700" : "bg-gray-400"
+                  }`}
                 disabled={!name.trim()}
               >
                 Next
