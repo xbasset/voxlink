@@ -27,6 +27,39 @@ interface TokenResponse {
   max_response_output_tokens: string;
 }
 
+const sessionUpdate = {
+  type: "session.update",
+  session: {
+    tools: [
+      {
+        type: "function",
+        name: "display_color_palette",
+        description: "functionDescription",
+        parameters: {
+          type: "object",
+          strict: true,
+          properties: {
+            theme: {
+              type: "string",
+              description: "Description of the theme for the color scheme.",
+            },
+            colors: {
+              type: "array",
+              description: "Array of five hex color codes based on the theme.",
+              items: {
+                type: "string",
+                description: "Hex color code",
+              },
+            },
+          },
+          required: ["theme", "colors"],
+        },
+      },
+    ],
+    tool_choice: "auto",
+  },
+};
+
 const Home: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [step, setStep] = useState(1); // Tracks which step we are on
@@ -37,10 +70,7 @@ const Home: React.FC = () => {
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
   const [ringtoneSound, setRingtoneSound] = useState<Howl>(new Howl({ src: ["/audio/ringtone.mp3"] }));
   const [ringtoneTimeoutId, setRingtoneTimeoutId] = useState<NodeJS.Timeout | null>(null);
-  const [token, setToken] = useState<TokenResponse | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
-
-
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [events, setEvents] = useState<any[]>([]);
   const [dataChannel, setDataChannel] = useState<RTCDataChannel | null>(null);
@@ -59,44 +89,63 @@ const Home: React.FC = () => {
     } else if (step === 2) {
       const tokenResponse = await getToken();
       if (tokenResponse) {
-        // 1) Set the token in state (React will schedule re-render)
-        setToken(tokenResponse);
-        // 2) Move forward to step 3
         setStep(3);
-        // 3) Play the ringtone, which will eventually call handleStartCall
-        playRingtone();
+        initiateCall(tokenResponse);
       } else {
-        console.error('Failed to get token');
+        console.error("Failed to get token");
       }
     }
   };
 
   const getToken = async () => {
     try {
-      const response = await fetch('/api/token');
+      const response = await fetch("/api/token");
       if (!response.ok) {
         throw new Error(`Failed to get token: ${response.statusText}`);
       }
       const data = await response.json();
       console.log("getToken > response data json: token=" + data.client_secret.value);
       if (!data) {
-        throw new Error('Token not found in response');
+        throw new Error("Token not found in response");
       }
-      return data as TokenResponse; // Return the token instead of setting state
+      return data as TokenResponse; // Return the token
     } catch (error) {
-      console.error('Error getting token:', error);
+      console.error("Error getting token:", error);
       return null;
     }
-  }
+  };
 
-  async function startSession() {
-    // Get an ephemeral key from the Fastify server
-    console.log("Starting session with token:" + token);
+  const initiateCall = (token: TokenResponse) => {
+    ringtoneSound.play();
+    // Stop the ringtone after MAX_RINGTONE_DURATION
+    const timeoutId = setTimeout(() => {
+      ringtoneSound.stop();
+      handleStartCall(token);
+    }, MAX_RINGTONE_DURATION);
+
+    setRingtoneTimeoutId(timeoutId);
+  };
+
+
+  const handleStartCall = async (token: TokenResponse) => {
+    if (!token) {
+      console.error("No token available for call");
+      handleStopCall();
+      return;
+    }
+
+    setStep(4);
+    await startSession(token);
+  };
+
+  async function startSession(token: TokenResponse) {
+
     if (!token) {
       console.error("Token is not available");
       return;
     }
-    const EPHEMERAL_KEY = token.client_secret;
+
+    const EPHEMERAL_KEY = token.client_secret.value;
 
     // Create a peer connection
     const pc = new RTCPeerConnection();
@@ -132,7 +181,7 @@ const Home: React.FC = () => {
     });
 
     const answer: RTCSessionDescriptionInit = {
-      type: 'answer' as RTCSdpType,
+      type: "answer" as RTCSdpType,
       sdp: await sdpResponse.text(),
     };
     await pc.setRemoteDescription(answer);
@@ -163,7 +212,7 @@ const Home: React.FC = () => {
     } else {
       console.error(
         "Failed to send message - no data channel available",
-        message,
+        message
       );
     }
   }
@@ -204,6 +253,7 @@ const Home: React.FC = () => {
     }
   }, [dataChannel]);
 
+
   const requestMicrophoneAccess = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); // Request permission
@@ -211,7 +261,8 @@ const Home: React.FC = () => {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const micDevices = devices.filter(
         (device) =>
-          device.kind === "audioinput" && !device.label.toLowerCase().includes("virtual")
+          device.kind === "audioinput" &&
+          !device.label.toLowerCase().includes("virtual")
       );
       setMicrophones(micDevices);
       setSelectedMic(micDevices[0]?.deviceId || "");
@@ -220,44 +271,16 @@ const Home: React.FC = () => {
     }
   };
 
-  const playRingtone = () => {
-    ringtoneSound.play();
-
-    // Stop the ringtone after MAX_RINGTONE_DURATION seconds
-    const timeoutId = setTimeout(async () => {
-      ringtoneSound.stop();
-      // Use the token from state directly in handleStartCall
-      handleStartCall();
-    }, MAX_RINGTONE_DURATION);
-
-    setRingtoneTimeoutId(timeoutId);
-  };
-
   const handleMicChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedMic(event.target.value);
   };
 
-  const handleStartCall = async () => {
-    // Check token here instead of in playRingtone
-    console.log("handleStartCall> token=" + token?.client_secret.value);
-    
-    if (!token) {
-      console.error('No token available for call');
-      handleStopCall();
-      return;
-    }
-    
-    setStep(4);
-    console.log("handleStartCall> Starting session with token:", token);
-    await startSession();
-  };
-
-  // Stop call explicitly, including stopping media tracks
+  // No changes here other than removing references to stale token
   const handleStopCall = () => {
     stopSession();
     if (micStream) {
       micStream.getTracks().forEach((track) => track.stop());
-      setMicStream(null); // Reset to null if you like
+      setMicStream(null);
     }
     ringtoneSound.stop();
     if (ringtoneTimeoutId) {
@@ -269,7 +292,7 @@ const Home: React.FC = () => {
     setModalVisible(false);
   };
 
-  // Keep the timer going while in step 4
+  // Timer for step 4
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
     if (step === 4) {
@@ -306,9 +329,9 @@ const Home: React.FC = () => {
     } else if (isModalVisible && step === 2) {
       // Use MutationObserver to detect when the select element is added to DOM
       const observer = new MutationObserver(() => {
-        const microphoneSelect = document.getElementById("voxlink-microphone-select");
-        if (microphoneSelect) {
-          microphoneSelect.focus();
+        const micSelect = document.getElementById("voxlink-microphone-select");
+        if (micSelect) {
+          micSelect.focus();
           observer.disconnect();
         }
       });
@@ -320,9 +343,8 @@ const Home: React.FC = () => {
     }
   }, [isModalVisible, step]);
 
-  // Add click outside listener
+  // Close modal if outside click (except during the call)
   useEffect(() => {
-    // if the state is in step 3 or 4, do nothing the modal is must be stopped by clicking the stop button
     if (step === 3 || step === 4) {
       return;
     }
@@ -363,8 +385,9 @@ const Home: React.FC = () => {
               <button
                 id="voxlink-go-to-microphone-button"
                 onClick={handleNext}
-                className={`text-white font-bold py-2 px-4 rounded float-right ${name.trim() ? "bg-blue-500 hover:bg-blue-700" : "bg-gray-400"
-                  }`}
+                className={`text-white font-bold py-2 px-4 rounded float-right ${
+                  name.trim() ? "bg-blue-500 hover:bg-blue-700" : "bg-gray-400"
+                }`}
                 disabled={!name.trim()}
               >
                 Next
@@ -385,7 +408,6 @@ const Home: React.FC = () => {
                     value={selectedMic}
                     onChange={handleMicChange}
                     onKeyDown={(e) => {
-                      // If user presses Enter, proceed
                       if (e.key === "Enter") handleNext();
                     }}
                     className="w-full p-2 border border-gray-300 rounded mb-4"
@@ -406,9 +428,15 @@ const Home: React.FC = () => {
                 </div>
               ) : (
                 <div>
-                  <label className="block mb-2 font-semibold">👋 Hey, {name}</label>
-                  <p className="mb-4">I need access to the microphone for you to talk to me.</p>
-                  <p className="mb-4 text-gray-500">Waiting for microphone permissions...</p>
+                  <label className="block mb-2 font-semibold">
+                    👋 Hey, {name}
+                  </label>
+                  <p className="mb-4">
+                    I need access to the microphone for you to talk to me.
+                  </p>
+                  <p className="mb-4 text-gray-500">
+                    Waiting for microphone permissions...
+                  </p>
                 </div>
               )}
             </div>
