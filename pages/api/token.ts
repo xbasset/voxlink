@@ -2,15 +2,15 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local', override: true });
 
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { TokenResponse } from '../../types/api';
 
-type TokenResponse = {
-  token?: string;
+type ApiResponse = {
   error?: string;
 };
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<TokenResponse>
+  res: NextApiResponse<TokenResponse | ApiResponse>
 ) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });

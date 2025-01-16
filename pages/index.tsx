@@ -3,30 +3,9 @@ import { Howl } from "howler"; // Import Howler for audio playback
 import CallButton from "../components/CallButton";
 import Modal from "../components/Modal";
 import { UserData } from '../types/user';
+import { TokenResponse } from '../types/api';
 
 const MAX_RINGTONE_DURATION = 5000;
-
-interface TokenResponse {
-  client_secret: {
-    value: string;
-    expires_at: number;
-    tools: any[];
-  };
-  id: string;
-  object: string;
-  model: string;
-  expires_at: number;
-  modalities: string[];
-  instructions: string;
-  voice: string;
-  turn_detection: any;
-  input_audio_format: string;
-  output_audio_format: string;
-  input_audio_transcription: string | null;
-  tool_choice: string;
-  temperature: number;
-  max_response_output_tokens: string;
-}
 
 const Home: React.FC = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
