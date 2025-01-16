@@ -93,6 +93,6 @@ sequenceDiagram
     Frontend->>Backend: Request token
     Backend->>Frontend: Return session token
     Frontend->>OpenAI: Initialize WebRTC
-    OpenAI->>Backend: Stream AI response
+    OpenAI->>Frontend: Stream AI response
     
 ```
