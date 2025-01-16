@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import CallButton from "../components/CallButton";
 import Modal from "../components/Modal";
 
@@ -8,6 +8,7 @@ const Home: React.FC = () => {
   const [name, setName] = useState("");
   const [microphones, setMicrophones] = useState<MediaDeviceInfo[]>([]); // List of microphones
   const [selectedMic, setSelectedMic] = useState(""); // Selected microphone
+  const modalRef = useRef<HTMLDivElement>(null);
 
   const handleCallButtonClick = () => {
     setModalVisible(true);
@@ -42,9 +43,21 @@ const Home: React.FC = () => {
     setModalVisible(false);
   };
 
-  const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyPressOnCallerName = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter' && name.trim()) {
       handleNext();
+    }
+  };
+
+  const handleKeyPressOnMicrophoneSelect = (event: React.KeyboardEvent<HTMLSelectElement>) => {
+    if (event.key === 'Enter' && selectedMic) {
+      handleStartCall();
+    }
+  };
+
+  const handleClickOutside = (event: MouseEvent) => {
+    if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+      setModalVisible(false);
     }
   };
 
@@ -55,74 +68,102 @@ const Home: React.FC = () => {
       if (nameInput) {
         nameInput.focus();
       }
+    } else if (isModalVisible && step === 2) {
+
+      // Use MutationObserver to detect when the select element is added to DOM
+      const observer = new MutationObserver((_) => {
+        const microphoneSelect = document.getElementById('voxlink-microphone-select');
+        if (microphoneSelect) {
+          microphoneSelect.focus();
+          observer.disconnect();
+        }
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
     }
   }, [isModalVisible, step]);
+
+  // Add click outside listener
+  useEffect(() => {
+    if (isModalVisible) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isModalVisible]);
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100 text-gray-800">
       <CallButton onClick={handleCallButtonClick} />
 
       <Modal isVisible={isModalVisible} onClose={() => setModalVisible(false)}>
-        {step === 1 && (
-          <div>
-          <h2 className="text-lg font-bold mb-4">Let's prepare the call</h2>
-            <input
-              id="voxlink-caller-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={handleKeyPress}
-              className="w-full p-2 border border-gray-300 rounded mb-4"
-              placeholder="Enter your name"
-            />
-            <button
-              id="voxlink-go-to-microphone-button"
-              onClick={handleNext}
-              className={`text-white font-bold py-2 px-4 rounded float-right ${
-                name.trim() ? 'bg-blue-500 hover:bg-blue-700' : 'bg-gray-400'
-              }`}
-              disabled={!name.trim()}
-            >
-              Next
-            </button>
-          </div>
-        )}
+        <div ref={modalRef}>
+          {step === 1 && (
+            <div>
+            <h2 className="text-lg font-bold mb-4">Let's prepare the call</h2>
+              <input
+                id="voxlink-caller-name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={handleKeyPressOnCallerName}
+                className="w-full p-2 border border-gray-300 rounded mb-4"
+                placeholder="Enter your name"
+              />
+              <button
+                id="voxlink-go-to-microphone-button"
+                onClick={handleNext}
+                className={`text-white font-bold py-2 px-4 rounded float-right ${
+                  name.trim() ? 'bg-blue-500 hover:bg-blue-700' : 'bg-gray-400'
+                }`}
+                disabled={!name.trim()}
+              >
+                Next
+              </button>
+            </div>
+          )}
 
-        {step === 2 && (
-          <div>
-            <h2 className="text-lg font-bold mb-4">Microphone Access</h2>
-            {microphones.length > 0 ? (
-              <div>
-                <label className="block mb-2 font-semibold">Choose a Microphone:</label>
-                <select
-                  id="voxlink-microphone-select"
-                  value={selectedMic}
-                  onChange={handleMicChange}
-                  className="w-full p-2 border border-gray-300 rounded mb-4"
-                >
-                  {microphones.map((mic) => (
-                    <option key={mic.deviceId} value={mic.deviceId}>
-                      {mic.label || "Unknown Microphone"}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  id="voxlink-start-call-button"
-                  onClick={handleStartCall}
-                  className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded float-right"
-                >
-                  Start the Call
-                </button>
-              </div>
-            ) : (
-              <div>
-                <label className="block mb-2 font-semibold">👋 Hey, {name}</label>
-                <p className="mb-4">I need access to the microphone for you to talk to me.</p>
-                <p className="mb-4 text-gray-500">Waiting for microphone permissions...</p>
-              </div>
-            )}
-          </div>
-        )}
+          {step === 2 && (
+            <div>
+              <h2 className="text-lg font-bold mb-4">Microphone Access</h2>
+              {microphones.length > 0 ? (
+                <div>
+                  <label className="block mb-2 font-semibold">✅ You can choose a microphone:</label>
+                  <select
+                    id="voxlink-microphone-select"
+                    value={selectedMic}
+                    onChange={handleMicChange}
+                    onKeyDown={handleKeyPressOnMicrophoneSelect}
+                    className="w-full p-2 border border-gray-300 rounded mb-4"
+                  >
+                    {microphones.map((mic) => (
+                      <option key={mic.deviceId} value={mic.deviceId}>
+                        {mic.label || "Unknown Microphone"}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    id="voxlink-start-call-button"
+                    onClick={handleStartCall}
+                    className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded float-right"
+                  >
+                    Start the Call
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <label className="block mb-2 font-semibold">👋 Hey, {name}</label>
+                  <p className="mb-4">I need access to the microphone for you to talk to me.</p>
+                  <p className="mb-4 text-gray-500">Waiting for microphone permissions...</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );
