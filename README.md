@@ -12,74 +12,31 @@ Voxlink is an AI-powered voice assistant that allows users to initiate a call to
 Voxlink is deployed as a web plugin in JavaScript that enables a click-to-call action on any webpage. The plugin will create an iframe that dynamically generates a user experience for initiating a call.
 It's also available on a dedicated regular phone number.
 
-## Workflow and Process:
+### How to use
 
-### 1. Button Configuration:
-- A configurable button with text such as "Call Me Now".
-- When clicked, it opens a modal view.
+1. Click the "Call Me Now" button on any webpage.
+![alt text](docs/img/image.png)
 
-### 2. Modal View Steps:
+2. Enter your name.
+![alt text](docs/img/image-1.png)
 
-#### Step 1: Initial Setup
-- User enters their name
-- Shows "Let's prepare the call" screen
-- Input field for name entry
+3. Select a microphone.
+![alt text](docs/img/image-5.png)
 
-#### Step 2: Microphone Access
-- Request microphone permissions
-- Shows microphone selection dropdown if available
-- Displays waiting message while getting permissions
+4. Click "Start the Call".
 
-#### Step 3: Call Preparation
-- Shows "Calling..." screen
-- Plays ringtone
-- Displays "Hold on, the call is being prepared"
-- Maximum ringtone duration is 10 seconds (MAX_RINGTONE_DURATION = 10000)
+![alt text](docs/img/image-3.png)
 
-#### Step 4: Active Call
-- Shows "Call in Progress" screen
-- Displays call duration timer
-- Allows user to stop the call
+5. Chat with the user's voice assistant to leave a message to the user.
 
 
-The steps progress sequentially (1 → 2 → 3 → 4) and can be stopped at any point using the stop/close buttons, though steps 3 and 4 require explicit stopping via the "Stop Call" button (clicking outside won't close the modal during these steps).
+![alt text](docs/img/image-4.png)
 
 
-#### Step 5: Feedback Collection
-- Ask for user feedback with a rating system from 1 to 5.
 
-## Backend
-The backend of Voxlink is built with:
+6. Click "Stop Call" to end the call.
 
-- NextJS: A React framework for production that enables features like:
-  - Server-side rendering
-  - API routes
-  - File-based routing
-  - Built-in optimization
 
-- OpenAI Integration:
-  - Realtime API conversation processing via WebRTC
+## Architecture
 
-The backend handles:
-- User session management
-- Audio streaming and processing
-- AI model interactions
-- Call state management
-- Analytics and logging
-
-## Frontend
-The frontend of Voxlink is built with:
-- React: A JavaScript library for building user interfaces
-  - Component-based architecture 
-  - Virtual DOM and hooks
-  - Context API
-
-- TailwindCSS: A utility-first CSS framework
-  - Responsive design utilities
-  - Custom design system
-  - Dark mode support
-
-The frontend handles:
-- UI rendering and state management
-- Real-time audio streaming
-- Responsive layouts
+See more details in the [architecture](./docs/architecture.md) document.

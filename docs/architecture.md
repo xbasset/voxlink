@@ -1,87 +1,98 @@
 # Voxlink Architecture
 
-## Backend Architecture
+## Workflow and Process:
 
-### API Routes (/backend/pages/api/)
+### 1. Button Configuration:
+- A configurable button with text such as "Call Me Now"
+- When clicked, it opens a modal view
 
-1. **Call Management**
-   - /api/call/initiate - Start a new call session
-   - /api/call/stream - Handle WebRTC streaming
-   - /api/call/end - End call and cleanup
+### 2. Modal View Steps:
 
-2. **Authentication**
-   - /api/auth/session - Manage user sessions
+#### Step 1: Initial Setup
+- Shows welcome message
+- User enters their name
+- User can proceed to next step
 
-3. **Feedback**
-   - /api/feedback/submit - Handle user feedback
-   - /api/feedback/analytics - Feedback analytics
+#### Step 2: Microphone Access
+- Request microphone permissions
+- Shows microphone selection dropdown if multiple devices available
+- Displays waiting message while getting permissions
 
-### Page Routes (/backend/pages/app/)
+#### Step 3: Call Preparation
+- Shows "Calling..." screen
+- Plays ringtone
+- Displays "Hold on, the call is being prepared"
+- Maximum ringtone duration is 10 seconds (MAX_RINGTONE_DURATION = 10000)
 
-1. **Public Pages**
-   - / - Landing page
-   - /demo - Demo page
-   - /pricing - Pricing information
+#### Step 4: Active Call
+- Shows "Call in Progress" screen
+- Displays call duration timer
+- Allows user to stop the call
 
-2. **Dashboard Pages**
-   - /dashboard - Main dashboard
-   - /dashboard/calls - Call history
-   - /dashboard/settings - User settings
+The steps progress sequentially (1 → 2 → 3 → 4) and can be stopped at any point by clicking outside the modal, except during active calls where explicit "End Call" action is required.
 
-### Services
+## Backend
+The backend of Voxlink is built with:
 
-1. **Call Service**
-   - WebRTC connection management
-   - Audio streaming
-   - Call state management
+- NextJS: A React framework that provides:
+  - API routes
+  - Server-side rendering
 
-2. **AI Service**
-   - OpenAI integration
-   - Speech-to-text processing
-   - Natural language understanding
+  - Built-in optimization
 
-## Frontend Architecture
+- OpenAI Integration:
+  - Realtime API conversation processing via WebRTC
 
-### Components
+The backend handles:
+- Token generation and validation
+- Audio streaming
+- AI model interactions
+- Call state management
 
-1. **Core Components**
-   - Button - Reusable button component
-   - Modal - Modal dialog component
-   - VoiceChat - Main voice chat interface
 
-2. **Feature Components**
-   - CallInitiator - Handles call initialization
-   - MicrophoneSetup - Microphone configuration
-   - FeedbackForm - User feedback collection
+## Frontend
+The frontend of Voxlink is built with:
+- React 18+
+- TypeScript
+- TailwindCSS
 
-### State Management
+Key components:
+- CallButton: Configurable button component
+- Modal: Dialog component for call flow
+- AudioHandler: Manages audio streaming
 
-1. **Context Providers**
-   - CallContext - Manages call state
-   - AudioContext - Handles audio configuration
+The frontend handles:
+- UI state management
+- Audio capture and streaming
+- WebRTC communication
 
-2. **Custom Hooks**
-   - useAudio - Audio stream management
-   - useWebRTC - WebRTC connection handling
-   - useCallState - Call state management
+
+## API Routes
+
+1. **Core Endpoints**
+   - /api/token - Generate session tokens
+   - /api/hello - Health check endpoint
+
+2. **User Management**
+   - /api/user - Handle user data and preferences
+
+## Types
+
+1. **API Types**
+   - TokenResponse - Session token response
+   - ApiError - Standard error format
+
+2. **User Types**
+   - User - User profile and settings
+   - UserPreferences - User configuration
 
 ## Communication Flow
 
-1. **Call Initiation**
-
 ```mermaid
 sequenceDiagram
-Frontend->>Backend: Initiate call
-Backend->>OpenAI: Initialize AI session
-Backend->>Frontend: Return session token
-Frontend->>OpenAI: Establish WebRTC connection
-```
-
-
-2. **Voice Processing**
-
-```mermaid
-sequenceDiagram
-Frontend->>OpenAI: Stream audio
-OpenAI->>Frontend: Stream AI response
+    Frontend->>Backend: Request token
+    Backend->>Frontend: Return session token
+    Frontend->>OpenAI: Initialize WebRTC
+    OpenAI->>Backend: Stream AI response
+    
 ```
