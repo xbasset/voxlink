@@ -51,7 +51,7 @@ const Home: React.FC = () => {
   // Auto-focus the name input when modal becomes visible
   useEffect(() => {
     if (isModalVisible && step === 1) {
-      const nameInput = document.getElementById('caller-name') as HTMLInputElement;
+      const nameInput = document.getElementById('voxlink-caller-name') as HTMLInputElement;
       if (nameInput) {
         nameInput.focus();
       }
