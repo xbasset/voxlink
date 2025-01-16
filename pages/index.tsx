@@ -69,9 +69,16 @@ const Home: React.FC = () => {
         nameInput.focus();
       }
     } else if (isModalVisible && step === 2) {
+      // Wait for the DOM to be ready
+      const handleDOMContentLoaded = () => {
+        const microphoneSelect = document.getElementById('voxlink-microphone-select') as HTMLSelectElement;
+        if (microphoneSelect) {
+          microphoneSelect.focus();
+        }
+      };
 
       // Use MutationObserver to detect when the select element is added to DOM
-      const observer = new MutationObserver((_) => {
+      const observer = new MutationObserver((mutations) => {
         const microphoneSelect = document.getElementById('voxlink-microphone-select');
         if (microphoneSelect) {
           microphoneSelect.focus();
