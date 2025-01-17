@@ -13,30 +13,14 @@ Voxlink is deployed as a web plugin in JavaScript that enables a click-to-call a
 It's also available on a dedicated regular phone number.
 
 
-## Integration Example with a personal website:
+## Demo
 
-1. Click the "Call Me Now" button on any webpage.
-![Click the "Call Me Now" button](docs/img/image.png)
+Here's an example with a personal website. Let's say you have a personal website and you want to add a click-to-call button to it.
 
-2. Enter your name.
-![Enter your name](docs/img/image-1.png)
+Here it is:
 
-3. Select a microphone.
-![Authorize microphone access](docs/img/image-2.png)
+https://github.com/user-attachments/assets/b3c21c6f-7dc6-4266-b18f-e0e5febfb9ed
 
-![Select a microphone](docs/img/image-3.png)
-
-4. Click "Start the Call".
-
-![Click "Start the Call"](docs/img/image-4.png)
-
-5. When the user is not available, the voice assistant will help the caller in any way possible.
-
-![Get guided by the voice assistant](docs/img/image-5.png)
-
-
-
-6. Click "Stop Call" to end the call.
 
 
 ## Architecture
