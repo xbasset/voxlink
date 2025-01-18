@@ -32,5 +32,6 @@ See more details in the [architecture](./docs/architecture.md) document.
 1. Clone the repository
 2. Create a .env.local file with the following variables: `OPENAI_API_KEY`. See [.env.example](.env.example).
 3. Run `npm install`
-4. Run `npm run dev`
-5. Navigate to `http://localhost:3000`
+4. Run `npm run init-db` to initialize the database
+5. Run `npm run dev`
+6. Navigate to `http://localhost:3000`

@@ -1,11 +1,11 @@
 import { EnvelopeIcon, PhoneIcon } from '@heroicons/react/20/solid'
 import { FC } from 'react'
-import { UserData } from '../types/user';
+import { User } from '../types/user';
 import PlaceHolder from './PlaceHolder';
 
 interface ProfileHeaderProps {
   className?: string
-  user: UserData | null
+  user: User | null
 }
 
 const ProfileHeader: FC<ProfileHeaderProps> = ({ className, user }) => {

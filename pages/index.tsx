@@ -4,13 +4,13 @@ import ProfileHeader from "../components/ProfileHeader";
 import { PhoneIcon, ChevronRightIcon, XMarkIcon } from '@heroicons/react/20/solid'
 import CallButton from "../components/CallButton";
 import Modal from "../components/Modal";
-import { UserData } from '../types/user';
 import { TokenResponse } from '../types/api';
+import { User } from '../types/db'
 
 const MAX_RINGTONE_DURATION = 5000;
 
 const Home: React.FC = () => {
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const [userData, setUser] = useState<User | null>(null);
   const [instructions, setInstructions] = useState<string>("");
   const [isModalVisible, setModalVisible] = useState(false);
   const [step, setStep] = useState(1); // Tracks which step we are on
@@ -37,18 +37,18 @@ const Home: React.FC = () => {
     setStep(1);
   };
 
-  const getUserData = async () => {
+  const getUser = async () => {
     try {
       const response = await fetch("/api/user");
       if (!response.ok) {
         throw new Error(`Failed to get user data: ${response.statusText}`);
       }
       const data = await response.json();
-      console.log("getUserData > response data json: ", data.name);
+      console.log("getUser > response data json: ", data.name);
       if (!data) {
         throw new Error("User data not found in response");
       }
-      return data as UserData; // Return the user data
+      return data as User; // Return the user data
     } catch (error) {
       console.error("Error getting user data:", error);
       return null;
@@ -271,8 +271,26 @@ const Home: React.FC = () => {
   };
 
   // No changes here other than removing references to stale token
-  const handleStopCall = () => {
-    stopSession();
+  const handleStopCall = async () => {
+    if (userData && name) {
+      try {
+        await fetch('/api/calls', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            visitorName: name,
+            duration: callDuration,
+            userId: userData.id, // Make sure User type includes an id field
+          }),
+        })
+      } catch (error) {
+        console.error('Failed to save call:', error)
+      }
+    }
+    
+    stopSession()
     if (micStream) {
       micStream.getTracks().forEach((track) => track.stop());
       setMicStream(null);
@@ -364,9 +382,9 @@ const Home: React.FC = () => {
   // Add this useEffect to fetch user data on page load
   useEffect(() => {
     console.log("mounted");
-    getUserData().then((userData) => {
+    getUser().then((userData) => {
       if (userData) {
-        setUserData(userData);
+        setUser(userData);
         setInstructions(userData.instructions);
       } else {
         console.error("Failed to get user data");

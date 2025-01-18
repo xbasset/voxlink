@@ -1,10 +1,10 @@
 import { PhoneIcon } from '@heroicons/react/20/solid'
 import React, { useState } from "react";
-import { UserData } from "../types/user";
+import { User } from "../types/user";
 
 interface CallButtonProps {
   onClick: () => void;
-  user: UserData | null;
+  user: User | null;
 }
 
 const CallButton: React.FC<CallButtonProps> = ({ onClick, user }) => {
