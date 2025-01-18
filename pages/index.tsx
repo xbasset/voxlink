@@ -6,6 +6,7 @@ import CallButton from "../components/CallButton";
 import Modal from "../components/Modal";
 import { TokenResponse } from '../types/api';
 import { User } from '../types/db'
+import { config } from '../lib/config'
 
 const MAX_RINGTONE_DURATION = 5000;
 
@@ -385,7 +386,7 @@ const Home: React.FC = () => {
     getUser().then((userData) => {
       if (userData) {
         setUser(userData);
-        setInstructions(userData.instructions);
+        setInstructions(config.instructions);
       } else {
         console.error("Failed to get user data");
         setInstructions("You are an Executive Assistant Software that takes care of the people calling. Unfortunately, we don't have any information about the user, there seems to be an issue with the user data. Politely ask the user to try again later, and tell them that you are sorry for the inconvenience.");
