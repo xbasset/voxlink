@@ -35,7 +35,7 @@ export default async function handler(
 
     const data = await response.json();
     // display the json data in the console
-    console.log("data:" + JSON.stringify(data, null, 2));
+    // console.log("data:" + JSON.stringify(data, null, 2));
     return res.status(200).json(data);
   } catch (error) {
     console.error('Token generation error:', error);

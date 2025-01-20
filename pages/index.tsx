@@ -7,8 +7,10 @@ import Modal from "../components/Modal";
 import { TokenResponse } from '../types/api';
 import { User } from '../types/db'
 import { config } from '../lib/config'
+import { ServerSideResponseOutputItem } from '../types/rtc'
 
 const MAX_RINGTONE_DURATION = 5000;
+
 
 const Home: React.FC = () => {
   const [userData, setUser] = useState<User | null>(null);
@@ -58,9 +60,8 @@ const Home: React.FC = () => {
 
   const handleNext = async () => {
     if (step === 1) {
-      const updatedInstructions = instructions + "\n\nThe caller's name is " + name + ".";
+      const updatedInstructions = instructions + "\n\n## Context Information\n- The caller's name is: " + name + ".\n- The current time is: " + new Date().toLocaleTimeString() + "\n- The user_name is: " + userData?.name;
       setInstructions(updatedInstructions);
-      console.log("handleNext > updatedInstructions: ", instructions);
       setStep(2);
       await requestMicrophoneAccess();
     } else if (step === 2) {
@@ -96,8 +97,7 @@ const Home: React.FC = () => {
       ringtoneSound.play();
       // Stop the ringtone after MAX_RINGTONE_DURATION
       const timeoutId = setTimeout(() => {
-        // ringtoneSound.stop();
-        ringtoneSound.fade(1, 0.1, 1000);
+        ringtoneSound.fade(1, 0, 1000);
         handleStartCall(token);
       }, MAX_RINGTONE_DURATION);
 
@@ -236,19 +236,66 @@ const Home: React.FC = () => {
   useEffect(() => {
     if (!events || events.length === 0) return;
     const firstEvent = events[events.length - 1];
+    const currentEvent = events[0];
     if (!agentInitialized && firstEvent.type === "session.created") {
 
       const initSessionInstructionsEvent = {
         "type": "session.update",
         "session": {
           "instructions": instructions,
+          "tools": config.tools,
         }
       }
       sendClientEvent(initSessionInstructionsEvent);
       sendClientEvent({ type: "response.create" });
       setAgentInitialized(true);
+    } else if (currentEvent.type === "response.done") {
+      if (currentEvent.response?.output) {
+        currentEvent.response.output.forEach((outputItem: ServerSideResponseOutputItem) => {
+          if (
+            outputItem.type === "function_call" &&
+            outputItem.name &&
+            outputItem.arguments
+          ) {
+            handleFunctionCall({
+              name: outputItem.name,
+              call_id: outputItem.call_id,
+              arguments: outputItem.arguments,
+            });
+          }
+        });
+      }
     }
   }, [events]);
+
+
+  const handleFunctionCall = async (functionCallParams: {
+    name: string;
+    call_id?: string;
+    arguments: string;
+  }) => {
+
+    // switch case on the function call name from the config.tools array
+    switch (functionCallParams.name) {
+      case "show_details_phone":
+        console.log("handleFunctionCall > show_details_phone: ", functionCallParams.arguments);
+
+        sendClientEvent({ type: "response.create" });
+        break;
+      case "show_details_email":
+        console.log("handleFunctionCall > show_details_email: ", functionCallParams.arguments);
+        sendClientEvent({ type: "response.create" });
+        break;
+      case "show_details_reason":
+        console.log("handleFunctionCall > show_details_reason: ", functionCallParams.arguments);
+        sendClientEvent({ type: "response.create" });
+        break;
+      default:
+        console.log("handleFunctionCall > unknown function call: ", functionCallParams);
+    }
+
+  };
+
 
   const requestMicrophoneAccess = async () => {
     try {
@@ -290,7 +337,7 @@ const Home: React.FC = () => {
         console.error('Failed to save call:', error)
       }
     }
-    
+
     stopSession()
     if (micStream) {
       micStream.getTracks().forEach((track) => track.stop());
@@ -395,17 +442,17 @@ const Home: React.FC = () => {
   }, []); // Empty dependency array means this runs once on mount
 
   return (
-      <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100 text-gray-800">
-        <ProfileHeader user={userData} />
-        <div className="bg-white px-6 py-4 lg:px-8">
+    <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100 text-gray-800">
+      <ProfileHeader user={userData} />
+      <div className="bg-white px-6 py-4 lg:px-8">
         <div className="mx-auto max-w-3xl text-base/7 text-gray-700">
           <p className="text-base/7 font-semibold text-indigo-600">Personal Website</p>
           <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 items-center justify-between">
 
-          <h1 className="mt-2 text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
-            {userData?.name}
-          </h1>
-          <CallButton onClick={handleCallButtonClick} user={userData} />
+            <h1 className="mt-2 text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
+              {userData?.name}
+            </h1>
+            <CallButton onClick={handleCallButtonClick} user={userData} />
           </div>
           <p className="mt-6 text-xl/8">
             {userData?.bio}
@@ -426,7 +473,7 @@ const Home: React.FC = () => {
           </div>
         </div>
       </div>
-      
+
 
       <Modal isVisible={isModalVisible} onClose={() => setModalVisible(false)}>
         <div ref={modalRef}>
@@ -445,9 +492,8 @@ const Home: React.FC = () => {
               <button
                 id="voxlink-go-to-microphone-button"
                 onClick={handleNext}
-                className={`flex items-center space-x-2 text-white font-bold py-2 px-4 rounded float-right ${
-                  name.trim() ? "bg-indigo-500 hover:bg-indigo-700" : "bg-gray-400"
-                }`}
+                className={`flex items-center space-x-2 text-white font-bold py-2 px-4 rounded float-right ${name.trim() ? "bg-indigo-500 hover:bg-indigo-700" : "bg-gray-400"
+                  }`}
                 disabled={!name.trim()}
               >
                 Next
