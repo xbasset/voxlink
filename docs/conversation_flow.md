@@ -2,14 +2,9 @@
 
 ```mermaid
 graph TD
-    A1["1. Greeting"]
-    A2["2. Get reason for call"]
-    A3["3. Get preferred contact information"]
-    A4["4. Completion"]
-
-    A1 -->|"After greeting is complete"| A2
-    A2 -->|"Once reason for calling is confirmed"| A3
-    A3 -->|"Once contact information is confirmed"| A4
+    A1["1. Greeting"] -->|"After greeting is complete"| A2["2. Get reason for call"]
+    A2 -->|"Once reason for calling is confirmed"| A3["3. Get preferred contact information"]
+    A3 -->|"Once contact information is confirmed"| A4["4. Completion"]
 ``` 
 
 ## Details
