@@ -32,11 +32,21 @@ const Home: React.FC = () => {
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const audioElement = useRef<HTMLAudioElement | null>(null);
 
+  const [show_details_name, setShowDetailsName] = useState<string | null>(null);
+  const [show_details_reason, setShowDetailsReason] = useState<string | null>(null);
+  const [show_details_email, setShowDetailsEmail] = useState<string | null>(null);
+  const [show_details_phone, setShowDetailsPhone] = useState<string | null>(null);
+
   const handleCallButtonClick = () => {
     if (!ringtoneSound) {
       setRingtoneSound(new Howl({ src: ["/audio/ringtone.mp3"] }));
     }
     setModalVisible(true);
+
+    // setShowDetailsName(name || null);
+    // setShowDetailsReason("The user wants to talk about AI services");
+    // setShowDetailsEmail("xavier@xavier.com");
+    // setShowDetailsPhone("1234567890");
     setStep(1);
   };
 
@@ -51,7 +61,7 @@ const Home: React.FC = () => {
       if (!data) {
         throw new Error("User data not found in response");
       }
-      return data as User; // Return the user data
+      return data as User;
     } catch (error) {
       console.error("Error getting user data:", error);
       return null;
@@ -279,15 +289,17 @@ const Home: React.FC = () => {
     switch (functionCallParams.name) {
       case "show_details_phone":
         console.log("handleFunctionCall > show_details_phone: ", functionCallParams.arguments);
-
+        setShowDetailsPhone(JSON.parse(functionCallParams.arguments).phone);
         sendClientEvent({ type: "response.create" });
         break;
       case "show_details_email":
         console.log("handleFunctionCall > show_details_email: ", functionCallParams.arguments);
+        setShowDetailsEmail(JSON.parse(functionCallParams.arguments).email);
         sendClientEvent({ type: "response.create" });
         break;
       case "show_details_reason":
         console.log("handleFunctionCall > show_details_reason: ", functionCallParams.arguments);
+        setShowDetailsReason(JSON.parse(functionCallParams.arguments).reason);
         sendClientEvent({ type: "response.create" });
         break;
       default:
@@ -429,7 +441,9 @@ const Home: React.FC = () => {
 
   // Add this useEffect to fetch user data on page load
   useEffect(() => {
-    console.log("mounted");
+    
+    // setName("Xavier");
+
     getUser().then((userData) => {
       if (userData) {
         setUser(userData);
@@ -575,11 +589,42 @@ const Home: React.FC = () => {
             <div>
               <div className="relative">
                 <img src="/images/voxlink-bot.png" alt="User" className="w-96 h-max rounded-lg mb-4" />
+                <div className="absolute top-6 left-0 right-0">
+                  <span className="text-gray-800 text-sm italic bg-gray-100 shadow-lg p-2">Call transfered to:</span>
+                </div>
                 <div className="absolute bottom-6 left-0 right-0 text-center">
-                  <span className="text-gray-800 text-xl font-bold bg-gray-100 bg-opacity-60 rounded-lg p-2">{userData?.name}'s Executive Assistant Software</span>
+                  <span className="text-gray-800 text-xl font-bold bg-gray-100 bg-opacity-90 rounded-lg p-2">{userData?.name}'s<br/></span><span className="text-gray-800 text-xl italic bg-gray-100 bg-opacity-90 rounded-lg p-2"> Executive Assistant Software</span>
                 </div>
               </div>
-              <p className="text-center text-md">Call Duration: {formatCallDuration(callDuration)}</p>
+              {(show_details_email !== null || show_details_name !== null || show_details_reason !== null) && (
+                <div className="bg-gray-100 bg-opacity-90 shadow-md rounded-lg p-4">
+                  <div className="">
+                    <h2 className="text-lg font-bold mb-2">Call Details</h2>
+                  </div>
+                  {show_details_name && (
+                    <div className="mt-4">
+                      <p className="text-md"><span className="font-bold">Your name:</span> {show_details_name}</p>
+                    </div>
+                  )}
+                  {show_details_reason && (
+                    <div className="mt-2">
+                      <p className="text-md"><span className="font-bold">Reason for Call:</span><br/> {show_details_reason}</p>
+                    </div>
+                  )}
+                  {show_details_email && (
+                    <div className="mt-2">
+                      <p className="text-md"><span className="font-bold">Email:</span> {show_details_email}</p>
+                    </div>
+                  )}
+                  {show_details_phone && (
+                    <div className="mt-2">
+                      <p className="text-md"><span className="font-bold">Phone Number:</span> {show_details_phone}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <p className="mt-4 text-center text-md">Call Duration: {formatCallDuration(callDuration)}</p>
               <button
                 id="voxlink-stop-call-button"
                 onClick={handleStopCall}
