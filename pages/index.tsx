@@ -68,7 +68,7 @@ const Home: React.FC = () => {
 
   const handleNext = async () => {
     if (step === 1) {
-      const updatedInstructions = instructions + "\n\n## Context Information\n- The caller's name is: " + name + ".\n- The current time is: " + new Date().toLocaleTimeString() + "\n- The user_name is: " + userData?.name;
+      const updatedInstructions = instructions + "\n\n## Context Information\n- The caller's name is: " + name + ".\n- The current time is: " + new Date().toLocaleTimeString() + "\n- The user_name is: " + userData?.name + "\n- The bio is: " + userData?.bio;
       setInstructions(updatedInstructions);
       setStep(2);
       await requestMicrophoneAccess();
@@ -287,22 +287,18 @@ const Home: React.FC = () => {
     // switch case on the function call name from the config.tools array
     switch (functionCallParams.name) {
       case "show_details_phone":
-        console.log("handleFunctionCall > show_details_phone: ", functionCallParams.arguments);
         setShowDetailsPhone(JSON.parse(functionCallParams.arguments).phone);
         sendClientEvent({ type: "response.create" });
         break;
       case "show_details_email":
-        console.log("handleFunctionCall > show_details_email: ", functionCallParams.arguments);
         setShowDetailsEmail(JSON.parse(functionCallParams.arguments).email);
         sendClientEvent({ type: "response.create" });
         break;
       case "show_details_reason":
-        console.log("handleFunctionCall > show_details_reason: ", functionCallParams.arguments);
         setShowDetailsReason(JSON.parse(functionCallParams.arguments).reason);
         sendClientEvent({ type: "response.create" });
         break;
       case "write_transcript": // This is called when the conversation is finished.
-        setTranscript(JSON.parse(functionCallParams.arguments).transcript);
         let transcriptToSave = JSON.parse(functionCallParams.arguments).transcript;
         await stopCall(transcriptToSave);
         break;
@@ -483,7 +479,7 @@ const Home: React.FC = () => {
             <CallButton onClick={handleCallButtonClick} user={userData} />
           </div>
           <p className="mt-6 text-xl/8">
-            {userData?.bio}
+            {userData?.shortBio}
           </p>
           <div className="mt-10 max-w-2xl">
             <p>

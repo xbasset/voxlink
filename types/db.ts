@@ -28,6 +28,7 @@ export interface User {
     city: string;
     state: string;
     zip: string;
+    shortBio: string;
     bio: string;
     avatar: string;
     backgroundImage: string;

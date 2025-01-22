@@ -16,6 +16,7 @@ const johnDoe: Omit<User, 'id'> = {
   state: "CA",
   zip: "12345",
   bio: "John Doe is a software engineer specializing in AI and machine learning. He offers services to help people with their AI and machine learning needs.",
+  shortBio: "John Doe is a software engineer specializing in AI and machine learning. He offers services to help people with their AI and machine learning needs. He offers consulting services at a $250/hour rate. He has been working in the AI industry for 10 years with experience in autonomous vehicles, self-driving cars, and sensor fusion.",
   avatar: "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?ixlib=rb-=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=1024&h=1024&q=80",
   backgroundImage: "https://images.unsplash.com/photo-1444628838545-ac4016a5418a?ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80"
 }
