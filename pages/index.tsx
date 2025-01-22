@@ -8,8 +8,8 @@ import { TokenResponse } from '../types/api';
 import { User } from '../types/db'
 import { config } from '../lib/config'
 import { ServerSideResponseOutputItem } from '../types/rtc'
-
-const MAX_RINGTONE_DURATION = 5000;
+import { CallTranscriptEntry } from '../types/db'
+const MAX_RINGTONE_DURATION = 1000;
 
 
 const Home: React.FC = () => {
@@ -17,6 +17,7 @@ const Home: React.FC = () => {
   const [instructions, setInstructions] = useState<string>("");
   const [isModalVisible, setModalVisible] = useState(false);
   const [step, setStep] = useState(1); // Tracks which step we are on
+  const [closingCall, setClosingCall] = useState(false);
   const [name, setName] = useState("");
   const [microphones, setMicrophones] = useState<MediaDeviceInfo[]>([]); // List of microphones
   const [selectedMic, setSelectedMic] = useState(""); // Selected microphone
@@ -37,16 +38,13 @@ const Home: React.FC = () => {
   const [show_details_email, setShowDetailsEmail] = useState<string | null>(null);
   const [show_details_phone, setShowDetailsPhone] = useState<string | null>(null);
 
+  const [transcript, setTranscript] = useState<CallTranscriptEntry[]>([]);
+
   const handleCallButtonClick = () => {
     if (!ringtoneSound) {
       setRingtoneSound(new Howl({ src: ["/audio/ringtone.mp3"] }));
     }
     setModalVisible(true);
-
-    // setShowDetailsName(name || null);
-    // setShowDetailsReason("The user wants to talk about AI services");
-    // setShowDetailsEmail("xavier@xavier.com");
-    // setShowDetailsPhone("1234567890");
     setStep(1);
   };
 
@@ -57,7 +55,6 @@ const Home: React.FC = () => {
         throw new Error(`Failed to get user data: ${response.statusText}`);
       }
       const data = await response.json();
-      console.log("getUser > response data json: ", data.name);
       if (!data) {
         throw new Error("User data not found in response");
       }
@@ -119,7 +116,7 @@ const Home: React.FC = () => {
   const handleStartCall = async (token: TokenResponse) => {
     if (!token) {
       console.error("No token available for call");
-      handleStopCall();
+      stopCall();
       return;
     }
 
@@ -255,6 +252,7 @@ const Home: React.FC = () => {
           "instructions": instructions,
           "tools": config.tools,
         }
+
       }
       sendClientEvent(initSessionInstructionsEvent);
       sendClientEvent({ type: "response.create" });
@@ -302,6 +300,11 @@ const Home: React.FC = () => {
         setShowDetailsReason(JSON.parse(functionCallParams.arguments).reason);
         sendClientEvent({ type: "response.create" });
         break;
+      case "write_transcript": // This is called when the conversation is finished.
+        setTranscript(JSON.parse(functionCallParams.arguments).transcript);
+        let transcriptToSave = JSON.parse(functionCallParams.arguments).transcript;
+        await stopCall(transcriptToSave);
+        break;
       default:
         console.log("handleFunctionCall > unknown function call: ", functionCallParams);
     }
@@ -330,8 +333,12 @@ const Home: React.FC = () => {
     setSelectedMic(event.target.value);
   };
 
-  // No changes here other than removing references to stale token
-  const handleStopCall = async () => {
+  const closeCall = () => {
+    sendTextMessage("Write the transcript of the conversation using the 'write_transcript' function call.")
+    setClosingCall(true);
+  }
+
+  const stopCall = async (transcript?: CallTranscriptEntry[]) => {
     if (userData && name) {
       try {
         await fetch('/api/calls', {
@@ -340,13 +347,15 @@ const Home: React.FC = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            visitorName: name,
             duration: callDuration,
-            userId: userData.id, // Make sure User type includes an id field
-            show_details_name: show_details_name,
-            show_details_reason: show_details_reason,
-            show_details_email: show_details_email,
-            show_details_phone: show_details_phone,
+            userId: userData.id,
+            details: {
+              name: show_details_name,
+              reason: show_details_reason,
+              email: show_details_email,
+              phone: show_details_phone,
+            },
+            transcript: transcript || []
           }),
         })
       } catch (error) {
@@ -369,7 +378,7 @@ const Home: React.FC = () => {
     setStep(1);
     setCallDuration(0);
     setModalVisible(false);
-  };
+  }
 
   // Timer for step 4
   useEffect(() => {
@@ -580,7 +589,7 @@ const Home: React.FC = () => {
               <p className="text-center text-md">Hold on, the call is being prepared.</p>
               <button
                 id="voxlink-stop-preparing-button"
-                onClick={handleStopCall}
+                onClick={() => stopCall([])}
                 className="flex items-center space-x-2 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mt-4 mx-auto block hover:scale-105 transition-all duration-300"
               >
                 <XMarkIcon aria-hidden="true" className="-ml-0.5 mr-1.5 size-5 text-white" />
@@ -629,14 +638,24 @@ const Home: React.FC = () => {
               )}
 
               <p className="mt-4 text-center text-md">Call Duration: {formatCallDuration(callDuration)}</p>
-              <button
-                id="voxlink-stop-call-button"
-                onClick={handleStopCall}
-                className="flex items-center space-x-2 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mt-4 mx-auto block hover:scale-105 transition-all duration-300"
-              >
-                <XMarkIcon aria-hidden="true" className="-ml-0.5 mr-1.5 size-5 text-white" />
-                Stop Call
-              </button>
+              {closingCall ? (
+                <div className="flex items-center justify-center space-x-2 bg-gray-100 p-4 rounded mt-4">
+                  <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span className="text-gray-700">Transmitting informations...</span>
+                </div>
+              ) : (
+                <button
+                  id="voxlink-stop-call-button"
+                  onClick={closeCall}
+                  className="flex items-center space-x-2 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mt-4 mx-auto block hover:scale-105 transition-all duration-300"
+                >
+                  <XMarkIcon aria-hidden="true" className="-ml-0.5 mr-1.5 size-5 text-white" />
+                  Stop Call
+                </button>
+              )}
             </div>
           )}
         </div>

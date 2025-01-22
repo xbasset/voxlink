@@ -7,18 +7,15 @@ export default async function handler(
   res: NextApiResponse<Call | { error: string }>,
 ) {
   if (req.method === 'POST') {
-    const { visitorName, duration, userId, show_details_name, show_details_reason, show_details_email, show_details_phone } = req.body
+    const {  duration, userId, details, transcript } = req.body
     
     try {
       const call = await saveCall({
-        visitorName,
         duration,
         userId,
         timestamp: new Date().toISOString(),
-        show_details_name,
-        show_details_reason,
-        show_details_email,
-        show_details_phone
+        details,
+        transcript,
       })
       return res.status(201).json(call as Call)
     } catch (error) {

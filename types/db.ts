@@ -1,13 +1,22 @@
 export interface Call {
   id: string
-  visitorName: string
   timestamp: string
   duration: number
   userId: string
-  show_details_name: string
-  show_details_reason: string
-  show_details_email: string
-  show_details_phone: string
+  details: {
+    name: string
+    reason: string
+    email: string
+    phone: string
+  }
+  transcript: CallTranscriptEntry[]
+}
+
+
+export interface CallTranscriptEntry {
+  itemId: string
+  from: string
+  content: string
 }
 
 export interface User {

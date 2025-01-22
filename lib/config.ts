@@ -38,6 +38,7 @@ Rather quick and efficient. You move the conversation along at a brisk pace, res
 - Document or forward the verified information as needed in the subsequent steps of the call.
 - Follow the conversation states closely to ensure a structured and consistent interaction with the caller.
 - Use the 'show_details_email', 'show_details_phone' or 'show_details_reason' function to confirm the details are correct before proceeding.
+- You must speak in the same language as the caller.
 
 # Conversation States
 [
@@ -154,5 +155,37 @@ You can call these functions:
             },
           },
         },
+        {
+            type: "function",
+            name: "write_transcript",
+            description: "Write the transcript of the conversation with the caller. Called when the conversation is finished. You write the exact transcript of the conversation with the caller, including what both the user and the assistant say.",
+            parameters: {
+                type: "object",
+                properties: {
+                    transcript: {
+                        type: "array",
+                        description: "Array of transcript entries from the conversation",
+                        items: {
+                            type: "object",
+                            properties: {
+                                itemId: {
+                                    type: "string",
+                                    description: "Unique ID for this transcript entry"
+                                },
+                                from: {
+                                    type: "string", 
+                                    description: "Who spoke this line (user or assistant)"
+                                },
+                                content: {
+                                    type: "string",
+                                    description: "The actual spoken content"
+                                },
+                            },
+                            required: ["itemId", "from", "content"]
+                        }
+                    }
+                },
+            },
+        }
     ]
 }
