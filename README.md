@@ -19,7 +19,7 @@ Here's an example with a personal website. Let's say you have a personal website
 
 Here it is:
 
-https://github.com/user-attachments/assets/b3c21c6f-7dc6-4266-b18f-e0e5febfb9ed
+https://github.com/user-attachments/assets/43521bd3-12d4-4bbb-885f-4b035df83a36
 
 
 
