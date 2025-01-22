@@ -49,4 +49,9 @@ export async function getUser(userId: string) {
 export async function getUserCalls(userId: string) {
   await db.read()
   return db.data.calls.filter(call => call.userId === userId)
+}
+
+export async function getUsers() {
+  await db.read()
+  return db.data.users
 } 

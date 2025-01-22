@@ -9,7 +9,8 @@ import { User } from '../types/db'
 import { config } from '../lib/config'
 import { ServerSideResponseOutputItem } from '../types/rtc'
 import { CallTranscriptEntry } from '../types/db'
-const MAX_RINGTONE_DURATION = 1000;
+
+const MAX_RINGTONE_DURATION = 5000;
 
 
 const Home: React.FC = () => {
@@ -350,7 +351,7 @@ const Home: React.FC = () => {
             duration: callDuration,
             userId: userData.id,
             details: {
-              name: show_details_name,
+              name: name,
               reason: show_details_reason,
               email: show_details_email,
               phone: show_details_phone,
