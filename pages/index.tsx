@@ -622,17 +622,35 @@ const Home: React.FC = () => {
                   )}
                   {show_details_reason && (
                     <div className="mt-2">
-                      <p className="text-md"><span className="font-bold">Reason for Call:</span><br/> {show_details_reason}</p>
+                      <p className="text-md"><span className="font-bold">Reason for Call:</span></p>
+                      <textarea
+                        rows={4}
+                        value={show_details_reason}
+                        onChange={(e) => setShowDetailsReason(e.target.value)}
+                        className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      />
                     </div>
                   )}
                   {show_details_email && (
                     <div className="mt-2">
-                      <p className="text-md"><span className="font-bold">Email:</span> {show_details_email}</p>
+                      <p className="text-md"><span className="font-bold">Email:</span></p>
+                      <input
+                        type="email"
+                        value={show_details_email}
+                        onChange={(e) => setShowDetailsEmail(e.target.value)}
+                        className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      />
                     </div>
                   )}
                   {show_details_phone && (
                     <div className="mt-2">
-                      <p className="text-md"><span className="font-bold">Phone Number:</span> {show_details_phone}</p>
+                      <p className="text-md"><span className="font-bold">Phone Number:</span></p>
+                      <input
+                        type="tel"
+                        value={show_details_phone}
+                        onChange={(e) => setShowDetailsPhone(e.target.value)}
+                        className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      />
                     </div>
                   )}
                 </div>
