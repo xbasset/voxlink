@@ -343,6 +343,10 @@ const Home: React.FC = () => {
             visitorName: name,
             duration: callDuration,
             userId: userData.id, // Make sure User type includes an id field
+            show_details_name: show_details_name,
+            show_details_reason: show_details_reason,
+            show_details_email: show_details_email,
+            show_details_phone: show_details_phone,
           }),
         })
       } catch (error) {
