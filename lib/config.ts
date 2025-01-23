@@ -187,5 +187,10 @@ You can call these functions:
                 },
             },
         }
-    ]
-}
+    ],
+    embed: {
+        allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') || [],
+        defaultHeight: '80px',
+        defaultWidth: '300px',
+    }
+} as const;
