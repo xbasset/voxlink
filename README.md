@@ -30,7 +30,7 @@ See more details in the [architecture](./docs/architecture.md) document.
 ## How to run the project
 
 1. Clone the repository
-2. Create a .env.local file with the following variables: `OPENAI_API_KEY`. See [.env.example](.env.example).
+2. Create a .env.local file with the following variables: `OPENAI_API_KEY`, `NEXT_PUBLIC_ALLOWED_ORIGIN`, `ALLOWED_ORIGINS`. See [.env.example](.env.example).
 3. Run `npm install`
 4. Run `npm run init-db` to initialize the database
 5. Run `npm run dev`
