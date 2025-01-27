@@ -37,7 +37,7 @@ export default function EmbedPage() {
 
   return (
     <CallFlowProvider user={user}>
-      <div className="voxlink-embed">
+      <div className="voxlink-embed text-gray-800">
         <Head>
           <title>Voxlink Call Button</title>
         </Head>
