@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { CallFlowButton } from '@/components/call/CallFlowButton';
 import { CallFlowModal } from '@/components/call/CallFlowModal';
 import { CallFlowProvider } from '@/components/call/CallFlowProvider';
 import { User } from '@/types/db';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export default function EmbedPage() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,13 +32,29 @@ export default function EmbedPage() {
     fetchUserData();
   }, []);
 
+  // Send height updates to parent
+  useEffect(() => {
+    const sendHeightToParent = () => {
+      const height = containerRef.current?.offsetHeight || 0;
+      window.parent.postMessage({ type: 'voxlink-resize', height }, '*');
+    };
+
+    // Create observer to watch for size changes
+    const resizeObserver = new ResizeObserver(sendHeightToParent);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    // Cleanup
+    return () => resizeObserver.disconnect();
+  }, []);
+
   if (loading) return null;
   if (error) return null;
 
-
   return (
     <CallFlowProvider user={user}>
-      <div className="voxlink-embed text-gray-800">
+      <div ref={containerRef} className="voxlink-embed text-gray-800 bg-white min-h-screen">
         <Head>
           <title>Voxlink Call Button</title>
         </Head>

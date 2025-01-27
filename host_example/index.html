@@ -17,10 +17,22 @@
 </script> -->
 
 <!-- using the iframe -->
+<script>
+  window.addEventListener('message', (event) => {
+    if (event.data.type === 'voxlink-resize') {
+      const iframe = document.querySelector('#voxlink-frame');
+      if (iframe) {
+        iframe.style.height = `${event.data.height}px`;
+      }
+    }
+  });
+</script>
+
 <iframe 
-src="http://localhost:3000/embed?userId=1&theme=light" 
-style="border: none; width: 300px; height: 80px;" 
-scrolling="no"
+  id="voxlink-frame"
+  src="http://localhost:3000/embed"
+  style="width: 100%; border: none; transition: height 0.3s ease;"
+  scrolling="no"
 ></iframe>
 </body>
 </html>
