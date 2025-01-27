@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useCallFlow } from './useCallFlow';
+import { useCallFlowContext } from './CallFlowProvider';
 import { PhoneIcon } from '@heroicons/react/20/solid';
 import { User } from '@/types/db';
 
@@ -10,7 +10,7 @@ interface CallFlowButtonProps {
 
 export const CallFlowButton: React.FC<CallFlowButtonProps> = ({ user, pulse = false }) => {
   const [isPulsing, setIsPulsing] = useState(pulse);
-  const { openCallModal } = useCallFlow();
+  const { openCallModal } = useCallFlowContext();
 
   return (
     <button

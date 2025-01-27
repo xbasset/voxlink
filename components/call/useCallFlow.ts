@@ -3,45 +3,77 @@ import { Howl } from "howler";
 import { TokenResponse } from '@/types/api';
 import { User } from '@/types/db';
 import { config } from '@/lib/config';
+import { ServerSideResponseOutputItem } from '@/types/rtc';
+import { CallTranscriptEntry } from '@/types/db';
 
 const MAX_RINGTONE_DURATION = 5000;
 
-export function useCallFlow() {
+interface UseCallFlowProps {
+  user: User | null;
+}
+
+export function useCallFlow({ user }: UseCallFlowProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [step, setStep] = useState(1);
   const [userName, setUserName] = useState('');
+  const [closingCall, setClosingCall] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
   
-  // Microphone
+  // Microphone states
   const [microphones, setMicrophones] = useState<MediaDeviceInfo[]>([]);
   const [selectedMic, setSelectedMic] = useState('');
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
 
-  // Ringtone
+  // Audio states
   const [ringtoneSound, setRingtoneSound] = useState<Howl | null>(null);
   const [ringtoneTimeoutId, setRingtoneTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const audioElement = useRef<HTMLAudioElement | null>(null);
 
-  // etc., keep as many states and references as you need to replicate your current flow
-  // (peerConnection, dataChannel, transcript, show_details_phone, show_details_email, etc.)
-  
-  // 1) Helper to open the modal.
+  // WebRTC states
+  const [isSessionActive, setIsSessionActive] = useState(false);
+  const [events, setEvents] = useState<any[]>([]);
+  const [agentInitialized, setAgentInitialized] = useState(false);
+  const [dataChannel, setDataChannel] = useState<RTCDataChannel | null>(null);
+  const peerConnection = useRef<RTCPeerConnection | null>(null);
+
+  // Call details states
+  const [showDetailsName, setShowDetailsName] = useState<string | null>(null);
+  const [showDetailsReason, setShowDetailsReason] = useState<string | null>(null);
+  const [showDetailsEmail, setShowDetailsEmail] = useState<string | null>(null);
+  const [showDetailsPhone, setShowDetailsPhone] = useState<string | null>(null);
+
+
   function openCallModal() {
-    // Initialize or load your ringtone if needed
+    console.log('🎯 Call button clicked - opening modal...');
     if (!ringtoneSound) {
-       setRingtoneSound(new Howl({ src: ["/audio/ringtone.mp3"] }));
+      console.log('Ringtone sound not found - creating new...');
+      setRingtoneSound(new Howl({ src: ["/audio/ringtone.mp3"] }));
     }
     setIsModalVisible(true);
     setStep(1);
+    console.log('step is', step);
   }
 
-  // 2) Step transitions
+  // Request microphone access
+  async function requestMicrophoneAccess() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setMicStream(stream);
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const micDevices = devices.filter(d => d.kind === "audioinput");
+      setMicrophones(micDevices);
+      setSelectedMic(micDevices[0]?.deviceId || '');
+    } catch (err) {
+      console.error("Microphone access denied:", err);
+    }
+  }
+
+  // Step transitions
   async function goToNextStep() {
     if (step === 1) {
-      // Validate userName if necessary, or gather instructions
-      // ...
       setStep(2);
       await requestMicrophoneAccess();
     } else if (step === 2) {
-      // fetch token, then set step = 3 for “calling...”
       const tokenResponse = await getToken();
       if (tokenResponse) {
         setStep(3);
@@ -50,58 +82,90 @@ export function useCallFlow() {
     }
   }
 
-  // 3) Request microphone
-  async function requestMicrophoneAccess() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setMicStream(stream);
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const micDevices = devices.filter((d) => d.kind === "audioinput");
-      setMicrophones(micDevices);
-      setSelectedMic(micDevices[0]?.deviceId || '');
-    } catch (err) {
-      console.error("Microphone access denied:", err);
-    }
-  }
-
-  // 4) Token fetch
+  // Token fetch
   async function getToken(): Promise<TokenResponse | null> {
     try {
-      const res = await fetch("/api/token");
-      if (!res.ok) throw new Error("Failed to fetch token");
-      const data = await res.json();
-      return data;
+      const response = await fetch("/api/token");
+      if (!response.ok) throw new Error("Failed to fetch token");
+      return await response.json();
     } catch (e) {
       console.error(e);
       return null;
     }
   }
 
-  // 5) Start the call (ringtone, transitions)
+  // Start the call
   function initiateCall(token: TokenResponse) {
     if (!ringtoneSound) return;
     ringtoneSound.play();
     const timeout = setTimeout(() => {
       ringtoneSound.fade(1, 0, 1000);
-      startActiveCall(token);
+      handleStartCall(token);
     }, MAX_RINGTONE_DURATION);
     setRingtoneTimeoutId(timeout);
   }
 
-  function startActiveCall(token: TokenResponse) {
-    // Move to step 4 or “active call”
+  async function handleStartCall(token: TokenResponse) {
+    if (!token) {
+      console.error("No token available for call");
+      stopCall();
+      return;
+    }
     setStep(4);
-    // set up your peer connection, data channels, etc.
+    await startSession(token);
   }
 
-  // 6) Stop call (similar to your “stopCall” logic)
-  function stopCall() {
-    // cleanup: stop tracks, close connections, clear timeouts, etc.
-    setIsModalVisible(false);
+  // WebRTC session management
+  async function startSession(token: TokenResponse) {
+    // ... (keep the existing WebRTC setup code)
+  }
+
+  function stopSession() {
+    if (dataChannel) {
+      dataChannel.close();
+    }
+    if (peerConnection.current) {
+      peerConnection.current.close();
+    }
+    setIsSessionActive(false);
+    setDataChannel(null);
+    peerConnection.current = null;
+  }
+
+  // Call duration timer
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    if (step === 4) {
+      intervalId = setInterval(() => {
+        setCallDuration((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [step]);
+
+  // Stop call
+  const stopCall = async (transcript: CallTranscriptEntry[] = []) => {
+    stopSession();
+    if (micStream) {
+      micStream.getTracks().forEach((track) => track.stop());
+      setMicStream(null);
+    }
+    if (ringtoneSound) {
+      ringtoneSound.stop();
+    }
+    if (ringtoneTimeoutId) {
+      clearTimeout(ringtoneTimeoutId);
+      setRingtoneTimeoutId(null);
+    }
     setStep(1);
-  }
+    setCallDuration(0);
+    setIsModalVisible(false);
+  };
 
-  // Return all states and functions that your UI components need to consume
   return {
     isModalVisible,
     step,
@@ -110,9 +174,15 @@ export function useCallFlow() {
     microphones,
     selectedMic,
     setSelectedMic,
+    callDuration,
+    showDetailsName,
+    showDetailsReason,
+    showDetailsEmail,
+    showDetailsPhone,
+    closingCall,
     openCallModal,
     goToNextStep,
     stopCall,
-    // add the other states and methods as needed for your full logic
+    user,
   };
 }
