@@ -42,11 +42,16 @@ export function useCallFlow({ user }: UseCallFlowProps) {
   const [showDetailsEmail, setShowDetailsEmail] = useState<string | null>(null);
   const [showDetailsPhone, setShowDetailsPhone] = useState<string | null>(null);
 
+  // Helper function for formatting call duration
+  const formatCallDuration = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const secondsString = seconds < 10 ? `0${seconds}` : String(seconds);
+    return `${minutes}:${secondsString}`;
+  };
 
   function openCallModal() {
-    console.log('🎯 Call button clicked - opening modal...');
     if (!ringtoneSound) {
-      console.log('Ringtone sound not found - creating new...');
       setRingtoneSound(new Howl({ src: ["/audio/ringtone.mp3"] }));
     }
     setIsModalVisible(true);
@@ -117,7 +122,63 @@ export function useCallFlow({ user }: UseCallFlowProps) {
 
   // WebRTC session management
   async function startSession(token: TokenResponse) {
-    // ... (keep the existing WebRTC setup code)
+    if (!token) {
+      console.error("Token is not available");
+      return;
+    }
+
+    const EPHEMERAL_KEY = token.client_secret.value;
+
+    // Create a peer connection
+    const pc = new RTCPeerConnection();
+
+    // Set up to play remote audio from the model
+    audioElement.current = document.createElement("audio");
+    if (audioElement.current) {
+      audioElement.current.autoplay = true;
+      pc.ontrack = (e) => (audioElement.current!.srcObject = e.streams[0]);
+    }
+
+    if (micStream) {
+      pc.addTrack(micStream.getTracks()[0]);
+    }
+
+    // Set up data channel for sending and receiving events
+    const dc = pc.createDataChannel("oai-events");
+    setDataChannel(dc);
+
+    // Start the session using the Session Description Protocol (SDP)
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    const baseUrl = "https://api.openai.com/v1/realtime";
+    const model = "gpt-4o-realtime-preview-2024-12-17";
+    const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
+      method: "POST",
+      body: offer.sdp,
+      headers: {
+        Authorization: `Bearer ${EPHEMERAL_KEY}`,
+        "Content-Type": "application/sdp",
+      },
+    });
+
+    const answer: RTCSessionDescriptionInit = {
+      type: "answer" as RTCSdpType,
+      sdp: await sdpResponse.text(),
+    };
+    await pc.setRemoteDescription(answer);
+
+    peerConnection.current = pc;
+
+    // Add event listeners for data channel
+    dc.addEventListener("message", (e) => {
+      setEvents((prev) => [JSON.parse(e.data), ...prev]);
+    });
+
+    dc.addEventListener("open", () => {
+      setIsSessionActive(true);
+      setEvents([]);
+    });
   }
 
   function stopSession() {
@@ -166,6 +227,101 @@ export function useCallFlow({ user }: UseCallFlowProps) {
     setIsModalVisible(false);
   };
 
+  // Close call function
+  const closeCall = () => {
+    setClosingCall(true);
+    sendTextMessage("Write the transcript of the conversation using the 'write_transcript' function call.");
+  };
+
+  // Send a text message to the model
+  function sendTextMessage(message: string) {
+    const event = {
+      type: "conversation.item.create",
+      item: {
+        type: "message",
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text: message,
+          },
+        ],
+      },
+    };
+
+    sendClientEvent(event);
+    sendClientEvent({ type: "response.create" });
+  }
+
+  // Send a message to the model
+  function sendClientEvent(message: any) {
+    if (dataChannel) {
+      message.event_id = message.event_id || crypto.randomUUID();
+      dataChannel.send(JSON.stringify(message));
+      setEvents((prev) => [message, ...prev]);
+    } else {
+      console.error("Failed to send message - no data channel available", message);
+    }
+  }
+
+  const handleFunctionCall = async (functionCallParams: {
+    name: string;
+    call_id?: string;
+    arguments: string;
+  }) => {
+    switch (functionCallParams.name) {
+      case "show_details_phone":
+        setShowDetailsPhone(JSON.parse(functionCallParams.arguments).phone);
+        sendClientEvent({ type: "response.create" });
+        break;
+      case "show_details_email":
+        setShowDetailsEmail(JSON.parse(functionCallParams.arguments).email);
+        sendClientEvent({ type: "response.create" });
+        break;
+      case "show_details_reason":
+        setShowDetailsReason(JSON.parse(functionCallParams.arguments).reason);
+        sendClientEvent({ type: "response.create" });
+        break;
+      case "write_transcript":
+        let transcriptToSave = JSON.parse(functionCallParams.arguments).transcript;
+        await stopCall(transcriptToSave);
+        break;
+      default:
+        console.log("handleFunctionCall > unknown function call: ", functionCallParams);
+    }
+  };
+
+  useEffect(() => {
+    if (!events || events.length === 0) return;
+    const firstEvent = events[events.length - 1];
+    const currentEvent = events[0];
+
+    if (!agentInitialized && firstEvent.type === "session.created") {
+      const initSessionInstructionsEvent = {
+        "type": "session.update",
+        "session": {
+          "instructions": config.instructions,
+          "tools": config.tools,
+        }
+      }
+      sendClientEvent(initSessionInstructionsEvent);
+      sendClientEvent({ type: "response.create" });
+      setAgentInitialized(true);
+    } else if (currentEvent.type === "response.done") {
+      if (currentEvent.response?.output) {
+        currentEvent.response.output.forEach((outputItem: ServerSideResponseOutputItem) => {
+          if (outputItem.type === "function_call" && outputItem.name && outputItem.arguments) {
+            handleFunctionCall({
+              name: outputItem.name,
+              call_id: outputItem.call_id,
+              arguments: outputItem.arguments,
+            });
+          }
+        });
+      }
+    }
+  }, [events]);
+
   return {
     isModalVisible,
     step,
@@ -176,13 +332,19 @@ export function useCallFlow({ user }: UseCallFlowProps) {
     setSelectedMic,
     callDuration,
     showDetailsName,
+    setShowDetailsName,
     showDetailsReason,
+    setShowDetailsReason,
     showDetailsEmail,
+    setShowDetailsEmail,
     showDetailsPhone,
+    setShowDetailsPhone,
     closingCall,
     openCallModal,
     goToNextStep,
     stopCall,
     user,
+    formatCallDuration,
+    closeCall,
   };
 }
