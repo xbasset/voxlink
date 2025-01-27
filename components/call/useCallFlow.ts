@@ -56,7 +56,6 @@ export function useCallFlow({ user }: UseCallFlowProps) {
     }
     setIsModalVisible(true);
     setStep(1);
-    console.log('step is', step);
   }
 
   // Request microphone access
@@ -76,6 +75,15 @@ export function useCallFlow({ user }: UseCallFlowProps) {
   // Step transitions
   async function goToNextStep() {
     if (step === 1) {
+      const updatedInstructions = config.instructions + 
+        "\n\n## Context Information\n" + 
+        "- The caller's name is: " + userName + ".\n" +
+        "- The current time is: " + new Date().toLocaleTimeString() + "\n" +
+        "- The user_name is: " + user?.name + "\n" +
+        "- The bio is: " + user?.bio;
+
+    console.log('updatedInstructions', updatedInstructions);
+
       setStep(2);
       await requestMicrophoneAccess();
     } else if (step === 2) {
@@ -222,6 +230,33 @@ export function useCallFlow({ user }: UseCallFlowProps) {
       clearTimeout(ringtoneTimeoutId);
       setRingtoneTimeoutId(null);
     }
+
+    // Save call data to database
+    if (user && transcript.length > 0) {
+      try {
+        await fetch("/api/calls", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            duration: transcript.reduce((acc, entry) => acc + 1, 0),
+            userId: user.id,
+            details: {
+              name: transcript.find((t) => t.from === "user")?.content || "",
+              reason: transcript.find((t) => t.from === "assistant")?.content || "",
+              email: user.email,
+              phone: user.phone,
+            },
+            transcript,
+          }),
+        });
+        console.log("Call saved successfully");
+      } catch (err) {
+        console.error("Failed to save call:", err);
+      }
+    }
+
     setStep(1);
     setCallDuration(0);
     setIsModalVisible(false);
@@ -271,15 +306,20 @@ export function useCallFlow({ user }: UseCallFlowProps) {
   }) => {
     switch (functionCallParams.name) {
       case "show_details_phone":
-        setShowDetailsPhone(JSON.parse(functionCallParams.arguments).phone);
+        const phoneArgs = JSON.parse(functionCallParams.arguments);
+        setShowDetailsReason(phoneArgs.reason);
+        setShowDetailsPhone(phoneArgs.phone);
         sendClientEvent({ type: "response.create" });
         break;
       case "show_details_email":
-        setShowDetailsEmail(JSON.parse(functionCallParams.arguments).email);
+        const emailArgs = JSON.parse(functionCallParams.arguments);
+        setShowDetailsReason(emailArgs.reason);
+        setShowDetailsEmail(emailArgs.email);
         sendClientEvent({ type: "response.create" });
         break;
       case "show_details_reason":
-        setShowDetailsReason(JSON.parse(functionCallParams.arguments).reason);
+        const reasonArgs = JSON.parse(functionCallParams.arguments);
+        setShowDetailsReason(reasonArgs.reason);
         sendClientEvent({ type: "response.create" });
         break;
       case "write_transcript":
