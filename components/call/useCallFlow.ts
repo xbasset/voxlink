@@ -42,6 +42,11 @@ export function useCallFlow({ user }: UseCallFlowProps) {
   const [showDetailsEmail, setShowDetailsEmail] = useState<string | null>(null);
   const [showDetailsPhone, setShowDetailsPhone] = useState<string | null>(null);
 
+  // Add instructions state
+  const [instructions, setInstructions] = useState<string>(
+    user ? config.instructions : "You are an Executive Assistant Software that takes care of the people calling. Unfortunately, we don't have any information about the user, there seems to be an issue with the user data. Politely ask the user to try again later, and tell them that you are sorry for the inconvenience."
+  );
+
   // Helper function for formatting call duration
   const formatCallDuration = (totalSeconds: number) => {
     const minutes = Math.floor(totalSeconds / 60);
@@ -75,15 +80,14 @@ export function useCallFlow({ user }: UseCallFlowProps) {
   // Step transitions
   async function goToNextStep() {
     if (step === 1) {
-      const updatedInstructions = config.instructions + 
+      const updatedInstructions = instructions + 
         "\n\n## Context Information\n" + 
         "- The caller's name is: " + userName + ".\n" +
         "- The current time is: " + new Date().toLocaleTimeString() + "\n" +
         "- The user_name is: " + user?.name + "\n" +
         "- The bio is: " + user?.bio;
-
-    console.log('updatedInstructions', updatedInstructions);
-
+      
+      setInstructions(updatedInstructions);
       setStep(2);
       await requestMicrophoneAccess();
     } else if (step === 2) {
@@ -232,7 +236,7 @@ export function useCallFlow({ user }: UseCallFlowProps) {
     }
 
     // Save call data to database
-    if (user && transcript.length > 0) {
+    if (user && userName && transcript.length > 0) {
       try {
         await fetch("/api/calls", {
           method: "POST",
@@ -240,18 +244,17 @@ export function useCallFlow({ user }: UseCallFlowProps) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            duration: transcript.reduce((acc, entry) => acc + 1, 0),
+            duration: callDuration,
             userId: user.id,
             details: {
-              name: transcript.find((t) => t.from === "user")?.content || "",
-              reason: transcript.find((t) => t.from === "assistant")?.content || "",
-              email: user.email,
-              phone: user.phone,
+              name: userName,
+              reason: showDetailsReason,
+              email: showDetailsEmail,
+              phone: showDetailsPhone,
             },
             transcript,
           }),
         });
-        console.log("Call saved successfully");
       } catch (err) {
         console.error("Failed to save call:", err);
       }
@@ -307,13 +310,11 @@ export function useCallFlow({ user }: UseCallFlowProps) {
     switch (functionCallParams.name) {
       case "show_details_phone":
         const phoneArgs = JSON.parse(functionCallParams.arguments);
-        setShowDetailsReason(phoneArgs.reason);
         setShowDetailsPhone(phoneArgs.phone);
         sendClientEvent({ type: "response.create" });
         break;
       case "show_details_email":
         const emailArgs = JSON.parse(functionCallParams.arguments);
-        setShowDetailsReason(emailArgs.reason);
         setShowDetailsEmail(emailArgs.email);
         sendClientEvent({ type: "response.create" });
         break;
@@ -340,7 +341,7 @@ export function useCallFlow({ user }: UseCallFlowProps) {
       const initSessionInstructionsEvent = {
         "type": "session.update",
         "session": {
-          "instructions": config.instructions,
+          "instructions": instructions,
           "tools": config.tools,
         }
       }
@@ -360,7 +361,7 @@ export function useCallFlow({ user }: UseCallFlowProps) {
         });
       }
     }
-  }, [events]);
+  }, [events, instructions]);
 
   return {
     isModalVisible,

@@ -64,7 +64,6 @@ const Home: React.FC = () => {
             transcript,
           }),
         });
-        console.log("Call saved successfully");
       } catch (err) {
         console.error("Failed to save call:", err);
       }
